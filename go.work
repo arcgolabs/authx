@@ -1,0 +1,12 @@
+go 1.26.2
+
+use (
+	.
+	examples
+	fx
+	http/echo
+	http/fiber
+	http/gin
+	http/std
+	jwt
+)
