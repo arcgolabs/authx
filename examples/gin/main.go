@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/DaiYuANg/arcgo/examples/authx/shared"
-	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/arcgolabs/authx"
+	"github.com/arcgolabs/authx/examples/shared"
 	authgin "github.com/arcgolabs/authx/http/gin"
+	"github.com/arcgolabs/logx"
 	"github.com/gin-gonic/gin"
 )
 

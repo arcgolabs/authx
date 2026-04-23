@@ -5,7 +5,7 @@ import (
 	"errors"
 	"reflect"
 
-	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+	collectionmapping "github.com/arcgolabs/collectionx/mapping"
 	"github.com/samber/oops"
 )
 

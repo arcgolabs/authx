@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/arcgolabs/authx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/golang-jwt/jwt/v5"
 )
 

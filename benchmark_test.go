@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/arcgolabs/authx"
+	"github.com/arcgolabs/collectionx"
 )
 
 type benchmarkCredential struct {

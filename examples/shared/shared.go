@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/arcgolabs/authx"
 	authhttp "github.com/arcgolabs/authx/http"
+	"github.com/arcgolabs/collectionx"
 )
 
 // BearerCredential carries the bearer token resolved from a request.

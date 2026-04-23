@@ -11,18 +11,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/DaiYuANg/arcgo/examples/authx/shared"
-	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/arcgolabs/authx"
+	"github.com/arcgolabs/authx/examples/shared"
 	authhttp "github.com/arcgolabs/authx/http"
 	authstd "github.com/arcgolabs/authx/http/std"
 	authjwt "github.com/arcgolabs/authx/jwt"
+	"github.com/arcgolabs/collectionx"
+	"github.com/arcgolabs/logx"
 	"github.com/go-chi/chi/v5"
 	jwtlib "github.com/golang-jwt/jwt/v5"
 )
 
-var demoJWTSecret = []byte("arcgo-demo-secret")
+var demoJWTSecret = []byte("authx-demo-secret")
 
 var (
 	jwtActionResolver = shared.NewMethodActionResolver(map[string]string{
@@ -155,7 +155,7 @@ func issueDemoJWT(subject string, roles []string, secret []byte, expiresAt time.
 			Subject:   subject,
 			ExpiresAt: jwtlib.NewNumericDate(expiresAt),
 			IssuedAt:  jwtlib.NewNumericDate(time.Now()),
-			Issuer:    "arcgo-authx-example",
+			Issuer:    "authx-example",
 		},
 	}
 	token := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, claims)

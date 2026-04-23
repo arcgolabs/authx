@@ -1,6 +1,6 @@
 package authx
 
-import "github.com/DaiYuANg/arcgo/collectionx"
+import "github.com/arcgolabs/collectionx"
 
 // AuthenticationResult stores identity resolved by authentication.
 type AuthenticationResult struct {

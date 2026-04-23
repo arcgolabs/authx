@@ -97,5 +97,5 @@ go run .
 ## Next
 
 - HTTP `Guard` and the std adapter (`chi + net/http`): [HTTP integration](./http-integration)
-- JWT provider module: [examples/authx/jwt](https://github.com/DaiYuANg/arcgo/tree/main/examples/authx/jwt)
+- JWT provider module: [examples/jwt](https://github.com/arcgolabs/authx/tree/main/examples/jwt)
 - Typed HTTP guard variants and framework adapters: see the [authx landing page](../) package layout

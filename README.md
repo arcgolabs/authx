@@ -29,7 +29,7 @@
 ## Documentation map
 
 - Minimal core (`Check` / `Can`): [Getting Started](./getting-started)
-- JWT provider example: [examples/authx/jwt](https://github.com/DaiYuANg/arcgo/tree/main/examples/authx/jwt)
+- JWT provider example: [examples/jwt](https://github.com/arcgolabs/authx/tree/main/examples/jwt)
 - `Guard` + std adapter (`chi + net/http`): [HTTP integration](./http-integration)
 - Release notes (v0.3.0 refactor): [authx v0.3.0](./release-v0.3.0)
 
@@ -84,26 +84,26 @@ Full std adapter sample (`chi + net/http`): [HTTP integration](./http-integratio
 
 ## Runnable examples (repository)
 
-- [examples/authx/jwt](https://github.com/DaiYuANg/arcgo/tree/main/examples/authx/jwt)
-- [examples/authx/std](https://github.com/DaiYuANg/arcgo/tree/main/examples/authx/std) (Chi + shared resolvers)
-- [examples/authx/gin](https://github.com/DaiYuANg/arcgo/tree/main/examples/authx/gin)
-- [examples/authx/echo](https://github.com/DaiYuANg/arcgo/tree/main/examples/authx/echo)
-- [examples/authx/fiber](https://github.com/DaiYuANg/arcgo/tree/main/examples/authx/fiber)
-- Shared helpers: [examples/authx/shared](https://github.com/DaiYuANg/arcgo/tree/main/examples/authx/shared)
+- [examples/jwt](https://github.com/arcgolabs/authx/tree/main/examples/jwt)
+- [examples/std](https://github.com/arcgolabs/authx/tree/main/examples/std) (Chi + shared resolvers)
+- [examples/gin](https://github.com/arcgolabs/authx/tree/main/examples/gin)
+- [examples/echo](https://github.com/arcgolabs/authx/tree/main/examples/echo)
+- [examples/fiber](https://github.com/arcgolabs/authx/tree/main/examples/fiber)
+- Shared helpers: [examples/shared](https://github.com/arcgolabs/authx/tree/main/examples/shared)
 
 ## Testing and benchmarks
 
 ```bash
-go test ./authx/...
+go test ./...
 
 # core
-go test ./authx -run ^$ -bench BenchmarkEngine -benchmem
+go test . -run ^$ -bench BenchmarkEngine -benchmem
 
 # middleware
-go test ./authx/http/std -run ^$ -bench BenchmarkRequire -benchmem
-go test ./authx/http/gin -run ^$ -bench BenchmarkRequire -benchmem
-go test ./authx/http/echo -run ^$ -bench BenchmarkRequire -benchmem
-go test ./authx/http/fiber -run ^$ -bench BenchmarkRequire -benchmem
+go test ./http/std -run ^$ -bench BenchmarkRequire -benchmem
+go test ./http/gin -run ^$ -bench BenchmarkRequire -benchmem
+go test ./http/echo -run ^$ -bench BenchmarkRequire -benchmem
+go test ./http/fiber -run ^$ -bench BenchmarkRequire -benchmem
 ```
 
 ## Production notes

@@ -1,6 +1,6 @@
 package authhttp
 
-import "github.com/DaiYuANg/arcgo/pkg/option"
+import "github.com/arcgolabs/pkg/option"
 
 // ApplyOptions applies non-nil option funcs to target.
 func ApplyOptions[T any, O ~func(*T)](target *T, opts ...O) {

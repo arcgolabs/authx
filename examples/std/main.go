@@ -9,10 +9,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/examples/authx/shared"
-	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/arcgolabs/authx"
+	"github.com/arcgolabs/authx/examples/shared"
 	authstd "github.com/arcgolabs/authx/http/std"
+	"github.com/arcgolabs/logx"
 	"github.com/go-chi/chi/v5"
 )
 

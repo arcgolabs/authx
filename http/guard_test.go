@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/arcgolabs/authx"
 	authhttp "github.com/arcgolabs/authx/http"
+	"github.com/arcgolabs/collectionx"
 )
 
 type testCredential struct {

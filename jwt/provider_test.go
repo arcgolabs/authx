@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/arcgolabs/authx"
 	authjwt "github.com/arcgolabs/authx/jwt"
+	"github.com/arcgolabs/collectionx"
 	jwtlib "github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

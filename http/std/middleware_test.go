@@ -7,10 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/arcgolabs/authx"
 	authhttp "github.com/arcgolabs/authx/http"
 	authstd "github.com/arcgolabs/authx/http/std"
+	"github.com/arcgolabs/collectionx"
 	"github.com/go-chi/chi/v5"
 )
 

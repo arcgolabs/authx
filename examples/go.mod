@@ -1,8 +1,10 @@
-module github.com/DaiYuANg/arcgo/examples/authx
+module github.com/arcgolabs/authx/examples
 
 go 1.26.2
 
 require (
+	github.com/arcgolabs/collectionx v0.2.0
+	github.com/arcgolabs/logx v0.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/gofiber/fiber/v2 v2.52.12

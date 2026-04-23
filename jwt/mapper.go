@@ -3,8 +3,8 @@ package authjwt
 import (
 	"context"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/arcgolabs/authx"
+	"github.com/arcgolabs/collectionx"
 )
 
 // PrincipalClaimsMapper maps Claims into authx.Principal using sub/roles/permissions claims.

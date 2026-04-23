@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/DaiYuANg/arcgo/examples/authx/shared"
-	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/arcgolabs/authx"
+	"github.com/arcgolabs/authx/examples/shared"
 	authfiber "github.com/arcgolabs/authx/http/fiber"
+	"github.com/arcgolabs/logx"
 	"github.com/gofiber/fiber/v2"
 )
 

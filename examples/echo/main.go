@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/DaiYuANg/arcgo/examples/authx/shared"
-	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/arcgolabs/authx"
+	"github.com/arcgolabs/authx/examples/shared"
 	authecho "github.com/arcgolabs/authx/http/echo"
+	"github.com/arcgolabs/logx"
 	"github.com/labstack/echo/v4"
 )
 

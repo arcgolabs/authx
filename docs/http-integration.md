@@ -117,4 +117,4 @@ curl -i -H "Authorization: Bearer secret-token" http://127.0.0.1:8080/hello
 
 - Core `Engine` only: [Getting Started](./getting-started)
 - Gin / Echo / Fiber adapters: see package layout on the [authx landing page](../)
-- Runnable demos with routers: [examples/authx/std](https://github.com/DaiYuANg/arcgo/tree/main/examples/authx/std) and sibling folders under `examples/authx/`
+- Runnable demos with routers: [examples/std](https://github.com/arcgolabs/authx/tree/main/examples/std) and sibling folders under `examples/`

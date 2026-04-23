@@ -3,7 +3,7 @@ package shared
 import (
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 // ParseBearer extracts a bearer token from an Authorization header value.
