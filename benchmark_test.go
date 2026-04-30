@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/arcgolabs/authx"
-	"github.com/arcgolabs/collectionx"
+	collectionmapping "github.com/arcgolabs/collectionx/mapping"
 )
 
 type benchmarkCredential struct {
@@ -79,7 +79,7 @@ func BenchmarkEngineCan(b *testing.B) {
 		Principal: authx.Principal{ID: "u-1"},
 		Action:    "query",
 		Resource:  "order",
-		Context: collectionx.NewMapFrom(map[string]any{
+		Context: collectionmapping.NewMapFrom(map[string]any{
 			"order_id": "1",
 		}),
 	}
@@ -170,7 +170,7 @@ func benchmarkEngineCheckThenCan(
 			Principal: result.Principal,
 			Action:    "query",
 			Resource:  "order",
-			Context: collectionx.NewMapFrom(map[string]any{
+			Context: collectionmapping.NewMapFrom(map[string]any{
 				"order_id": "1",
 			}),
 		})

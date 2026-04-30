@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/arcgolabs/authx"
-	"github.com/arcgolabs/collectionx"
+	collectionlist "github.com/arcgolabs/collectionx/list"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -21,16 +21,16 @@ type Option func(*Provider)
 type Provider struct {
 	keyfunc       jwt.Keyfunc
 	claimsMapper  ClaimsMapper
-	parserOptions collectionx.List[jwt.ParserOption]
-	validMethods  collectionx.List[string]
+	parserOptions *collectionlist.List[jwt.ParserOption]
+	validMethods  *collectionlist.List[string]
 }
 
 // NewProvider creates a JWT authentication provider.
 func NewProvider(opts ...Option) *Provider {
 	provider := &Provider{
 		claimsMapper:  PrincipalClaimsMapper,
-		parserOptions: collectionx.NewList[jwt.ParserOption](),
-		validMethods:  collectionx.NewList[string](),
+		parserOptions: collectionlist.NewList[jwt.ParserOption](),
+		validMethods:  collectionlist.NewList[string](),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -60,7 +60,7 @@ func WithHMACSecret(secret []byte, methods ...string) Option {
 		if provider == nil {
 			return
 		}
-		provider.validMethods = collectionx.NewList(methods...)
+		provider.validMethods = collectionlist.NewList(methods...)
 		if provider.validMethods.IsEmpty() {
 			provider.validMethods.Add(jwt.SigningMethodHS256.Alg())
 		}
@@ -77,7 +77,7 @@ func WithHMACSecret(secret []byte, methods ...string) Option {
 func WithValidMethods(methods ...string) Option {
 	return func(provider *Provider) {
 		if provider != nil {
-			provider.validMethods = collectionx.NewList(methods...)
+			provider.validMethods = collectionlist.NewList(methods...)
 		}
 	}
 }
@@ -137,7 +137,7 @@ func (provider *Provider) jwtParserOptions() []jwt.ParserOption {
 	if provider.validMethods.IsEmpty() {
 		return provider.parserOptions.Values()
 	}
-	options := collectionx.NewListWithCapacity[jwt.ParserOption](
+	options := collectionlist.NewListWithCapacity[jwt.ParserOption](
 		provider.parserOptions.Len()+1,
 		jwt.WithValidMethods(provider.validMethods.Values()),
 	)

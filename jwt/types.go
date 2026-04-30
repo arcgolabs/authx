@@ -14,7 +14,7 @@ func NewTokenCredential(token string) TokenCredential {
 
 // Claims is the default JWT claims shape mapped by PrincipalClaimsMapper.
 // Slice fields are kept here to match JWT JSON unmarshalling and are converted
-// to collectionx.List values by the mapper.
+// to list.List values by the mapper.
 type Claims struct {
 	Roles       []string `json:"roles,omitempty"`
 	Permissions []string `json:"permissions,omitempty"`

@@ -8,7 +8,7 @@ import (
 
 	"github.com/arcgolabs/authx"
 	authhttp "github.com/arcgolabs/authx/http"
-	"github.com/arcgolabs/collectionx"
+	collectionmapping "github.com/arcgolabs/collectionx/mapping"
 )
 
 type testCredential struct {
@@ -53,7 +53,7 @@ func newTestGuard() *authhttp.Guard {
 				Principal: principal,
 				Action:    action,
 				Resource:  "order",
-				Context: collectionx.NewMapFrom(map[string]any{
+				Context: collectionmapping.NewMapFrom(map[string]any{
 					"order_id": req.PathParam("id"),
 				}),
 			}, nil

@@ -16,7 +16,7 @@ import (
 	authhttp "github.com/arcgolabs/authx/http"
 	authstd "github.com/arcgolabs/authx/http/std"
 	authjwt "github.com/arcgolabs/authx/jwt"
-	"github.com/arcgolabs/collectionx"
+	collectionmapping "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/logx"
 	"github.com/go-chi/chi/v5"
 	jwtlib "github.com/golang-jwt/jwt/v5"
@@ -141,7 +141,7 @@ func resolveJWTAuthorization(_ context.Context, req authhttp.RequestInfo, princi
 		Principal: principal,
 		Action:    action,
 		Resource:  resource,
-		Context: collectionx.NewMapFrom(map[string]any{
+		Context: collectionmapping.NewMapFrom(map[string]any{
 			"order_id":      req.PathParam("id"),
 			"route_pattern": req.RoutePattern,
 		}),

@@ -10,7 +10,7 @@ import (
 	"github.com/arcgolabs/authx"
 	authhttp "github.com/arcgolabs/authx/http"
 	authstd "github.com/arcgolabs/authx/http/std"
-	"github.com/arcgolabs/collectionx"
+	collectionmapping "github.com/arcgolabs/collectionx/mapping"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -56,7 +56,7 @@ func newMiddlewareGuard() *authhttp.Guard {
 				Principal: principal,
 				Action:    action,
 				Resource:  "order",
-				Context: collectionx.NewMapFrom(map[string]any{
+				Context: collectionmapping.NewMapFrom(map[string]any{
 					"order_id": req.PathParam("id"),
 				}),
 			}, nil
@@ -135,7 +135,7 @@ func TestRequireUsesCHIRouteMetadataByDefault(t *testing.T) {
 				Principal: principal,
 				Action:    req.RoutePattern,
 				Resource:  req.PathParam("id"),
-				Context:   collectionx.NewMapFrom(map[string]any{"path": req.Path}),
+				Context:   collectionmapping.NewMapFrom(map[string]any{"path": req.Path}),
 			}, nil
 		}),
 	)

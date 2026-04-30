@@ -1,11 +1,14 @@
 package authx
 
-import "github.com/arcgolabs/collectionx"
+import (
+	collectionlist "github.com/arcgolabs/collectionx/list"
+	collectionmapping "github.com/arcgolabs/collectionx/mapping"
+)
 
 // AuthenticationResult stores identity resolved by authentication.
 type AuthenticationResult struct {
 	Principal any
-	Details   collectionx.Map[string, any]
+	Details   *collectionmapping.Map[string, any]
 }
 
 // AuthorizationModel is the transport-agnostic input for authorization.
@@ -13,7 +16,7 @@ type AuthorizationModel struct {
 	Principal any
 	Action    string
 	Resource  string
-	Context   collectionx.Map[string, any]
+	Context   *collectionmapping.Map[string, any]
 }
 
 // Decision is the authorization output.
@@ -26,7 +29,7 @@ type Decision struct {
 // Principal is the default identity shape used by built-in helpers.
 type Principal struct {
 	ID          string
-	Roles       collectionx.List[string]
-	Permissions collectionx.List[string]
-	Attributes  collectionx.Map[string, any]
+	Roles       *collectionlist.List[string]
+	Permissions *collectionlist.List[string]
+	Attributes  *collectionmapping.Map[string, any]
 }

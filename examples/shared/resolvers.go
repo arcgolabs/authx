@@ -5,35 +5,35 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
-	"github.com/samber/lo"
+	collectionlist "github.com/arcgolabs/collectionx/list"
+	collectionmapping "github.com/arcgolabs/collectionx/mapping"
 )
 
 // MethodActionResolver maps HTTP methods to auth action names.
 type MethodActionResolver struct {
-	actionByMethod collectionx.Map[string, string]
+	actionByMethod *collectionmapping.Map[string, string]
 }
 
 // NewMethodActionResolver creates a method-to-action resolver.
 func NewMethodActionResolver(actionByMethod map[string]string) MethodActionResolver {
 	normalized := make(map[string]string, len(actionByMethod))
-	lo.ForEach(lo.Entries(actionByMethod), func(entry lo.Entry[string, string], _ int) {
-		key := strings.ToUpper(strings.TrimSpace(entry.Key))
-		value := strings.TrimSpace(entry.Value)
+	for rawKey, rawValue := range actionByMethod {
+		key := strings.ToUpper(strings.TrimSpace(rawKey))
+		value := strings.TrimSpace(rawValue)
 		if key != "" && value != "" {
 			normalized[key] = value
 		}
-	})
+	}
 
 	return MethodActionResolver{
-		actionByMethod: collectionx.NewMapFrom(normalized),
+		actionByMethod: collectionmapping.NewMapFrom(normalized),
 	}
 }
 
 // Resolve maps an HTTP method to an action name.
 func (resolver MethodActionResolver) Resolve(method string) (string, error) {
 	normalizedMethod := strings.ToUpper(strings.TrimSpace(method))
-	if action, ok := resolver.actionByMethod.GetOption(normalizedMethod).Get(); ok {
+	if action, ok := resolver.actionByMethod.Get(normalizedMethod); ok {
 		return action, nil
 	}
 	return "", errors.New("unsupported method for action mapping")
@@ -41,8 +41,8 @@ func (resolver MethodActionResolver) Resolve(method string) (string, error) {
 
 // RouteResourceResolver maps route patterns to auth resource names.
 type RouteResourceResolver struct {
-	resourceByExactPattern collectionx.Map[string, string]
-	resourceByPrefix       collectionx.Map[string, string]
+	resourceByExactPattern *collectionmapping.Map[string, string]
+	resourceByPrefix       *collectionmapping.Map[string, string]
 }
 
 // NewRouteResourceResolver creates a route-to-resource resolver.
@@ -51,8 +51,8 @@ func NewRouteResourceResolver(
 	resourceByPrefix map[string]string,
 ) RouteResourceResolver {
 	return RouteResourceResolver{
-		resourceByExactPattern: collectionx.NewMapFrom(normalizedEntries(resourceByExactPattern)),
-		resourceByPrefix:       collectionx.NewMapFrom(normalizedEntries(resourceByPrefix)),
+		resourceByExactPattern: collectionmapping.NewMapFrom(normalizedEntries(resourceByExactPattern)),
+		resourceByPrefix:       collectionmapping.NewMapFrom(normalizedEntries(resourceByPrefix)),
 	}
 }
 
@@ -63,7 +63,7 @@ func (resolver RouteResourceResolver) Resolve(routePattern string) (string, erro
 		return "", errors.New("empty route pattern")
 	}
 
-	if resource, ok := resolver.resourceByExactPattern.GetOption(pattern).Get(); ok {
+	if resource, ok := resolver.resourceByExactPattern.Get(pattern); ok {
 		return resource, nil
 	}
 
@@ -71,10 +71,10 @@ func (resolver RouteResourceResolver) Resolve(routePattern string) (string, erro
 	sort.Slice(prefixes, func(i, j int) bool {
 		return len(prefixes[i]) > len(prefixes[j])
 	})
-	if prefix, found := lo.Find(prefixes, func(p string) bool {
+	if prefix, found := collectionlist.NewList(prefixes...).FirstWhere(func(_ int, p string) bool {
 		return strings.HasPrefix(pattern, p)
-	}); found {
-		if resource, ok := resolver.resourceByPrefix.GetOption(prefix).Get(); ok {
+	}).Get(); found {
+		if resource, ok := resolver.resourceByPrefix.Get(prefix); ok {
 			return resource, nil
 		}
 	}
@@ -88,13 +88,13 @@ func normalizedEntries(entries map[string]string) map[string]string {
 	}
 
 	normalized := make(map[string]string, len(entries))
-	lo.ForEach(lo.Entries(entries), func(entry lo.Entry[string, string], _ int) {
-		key := strings.TrimSpace(entry.Key)
-		value := strings.TrimSpace(entry.Value)
+	for rawKey, rawValue := range entries {
+		key := strings.TrimSpace(rawKey)
+		value := strings.TrimSpace(rawValue)
 		if key != "" && value != "" {
 			normalized[key] = value
 		}
-	})
+	}
 
 	return normalized
 }

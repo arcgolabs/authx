@@ -8,7 +8,7 @@ import (
 
 	"github.com/arcgolabs/authx"
 	authjwt "github.com/arcgolabs/authx/jwt"
-	"github.com/arcgolabs/collectionx"
+	collectionlist "github.com/arcgolabs/collectionx/list"
 	jwtlib "github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,7 +40,7 @@ func TestProviderAuthenticatesHMACToken(t *testing.T) {
 	assert.Equal(t, "issuer", principal.Attributes.GetOrDefault("issuer", ""))
 	audience, ok := principal.Attributes.Get("audience")
 	require.True(t, ok)
-	audienceList, ok := audience.(collectionx.List[string])
+	audienceList, ok := audience.(*collectionlist.List[string])
 	require.True(t, ok)
 	assert.Equal(t, []string{"api"}, audienceList.Values())
 	assert.Equal(t, "token-1", principal.Attributes.GetOrDefault("jwt_id", ""))
