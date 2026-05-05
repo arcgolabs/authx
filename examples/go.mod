@@ -3,8 +3,8 @@ module github.com/arcgolabs/authx/examples
 go 1.26.2
 
 require (
-	github.com/arcgolabs/collectionx/list v0.6.0
-	github.com/arcgolabs/collectionx/mapping v0.6.0
+	github.com/arcgolabs/collectionx/list v0.7.0
+	github.com/arcgolabs/collectionx/mapping v0.7.0
 	github.com/arcgolabs/logx v0.1.1
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-chi/chi/v5 v5.2.5
@@ -17,10 +17,10 @@ require (
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/arcgolabs/collectionx v0.2.0 // indirect
 	github.com/arcgolabs/collectionx/internal v0.6.0 // indirect
-	github.com/arcgolabs/collectionx/interval v0.6.0 // indirect
-	github.com/arcgolabs/collectionx/prefix v0.6.0 // indirect
-	github.com/arcgolabs/collectionx/set v0.6.0 // indirect
-	github.com/arcgolabs/collectionx/tree v0.6.0 // indirect
+	github.com/arcgolabs/collectionx/interval v0.7.0 // indirect
+	github.com/arcgolabs/collectionx/prefix v0.7.0 // indirect
+	github.com/arcgolabs/collectionx/set v0.7.0 // indirect
+	github.com/arcgolabs/collectionx/tree v0.7.0 // indirect
 	github.com/arcgolabs/pkg/option v0.0.3 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
