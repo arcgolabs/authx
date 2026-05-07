@@ -58,7 +58,7 @@ func newBenchmarkDatasetEngine(dataset benchmarkDataset, withHook bool) *authx.E
 			credential benchmarkDatasetCredential,
 		) (authx.AuthenticationResult, error) {
 			if _, ok := dataset.userPermissions[credential.UserID]; !ok {
-				return authx.AuthenticationResult{}, authx.ErrUnauthenticated
+				return authx.AuthenticationResult{}, authx.NewError(authx.ErrorCodeUnauthenticated, "authenticate benchmark credential")
 			}
 			return authx.AuthenticationResult{
 				Principal: authx.Principal{ID: credential.UserID},

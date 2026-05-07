@@ -74,8 +74,7 @@ func TestEngineCheckAndCan(t *testing.T) {
 func TestEngineCheckManagerMissing(t *testing.T) {
 	engine := authx.NewEngine()
 	_, err := engine.Check(context.Background(), credentialA{ID: "x"})
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrAuthenticationManagerNotConfigured)
+	assertAuthxErrorCode(t, err, authx.ErrorCodeAuthenticationManagerNotConfigured)
 }
 
 func TestEngineRegisterProviderCreatesDefaultManager(t *testing.T) {
@@ -119,8 +118,7 @@ func TestEngineRegisterProviderRejectsUnsupportedManager(t *testing.T) {
 			return authx.AuthenticationResult{}, nil
 		},
 	))
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrAuthenticationProviderRegistrationUnsupported)
+	assertAuthxErrorCode(t, err, authx.ErrorCodeAuthenticationProviderRegistrationUnsupported)
 }
 
 func TestEngineCanAuthorizerMissing(t *testing.T) {
@@ -134,8 +132,7 @@ func TestEngineCanAuthorizerMissing(t *testing.T) {
 		Action:    "read",
 		Resource:  "orders",
 	})
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrAuthorizerNotConfigured)
+	assertAuthxErrorCode(t, err, authx.ErrorCodeAuthorizerNotConfigured)
 }
 
 func TestEngineHooks(t *testing.T) {
@@ -199,10 +196,8 @@ func TestEngineValidation(t *testing.T) {
 	engine := authx.NewEngine()
 
 	_, err := engine.Check(context.Background(), nil)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrInvalidAuthenticationCredential)
+	assertAuthxErrorCode(t, err, authx.ErrorCodeInvalidAuthenticationCredential)
 
 	_, err = engine.Can(context.Background(), authx.AuthorizationModel{Action: "", Resource: "orders"})
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrInvalidAuthorizationModel)
+	assertAuthxErrorCode(t, err, authx.ErrorCodeInvalidAuthorizationModel)
 }

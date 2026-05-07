@@ -46,7 +46,11 @@ func NewGuard(record func(Snapshot)) *authhttp.Guard {
 	manager := authx.NewProviderManager(
 		authx.NewAuthenticationProviderFunc(func(_ context.Context, input credential) (authx.AuthenticationResult, error) {
 			if input.Token == "" || input.Token == "invalid-token" {
-				return authx.AuthenticationResult{}, authx.ErrUnauthenticated
+				return authx.AuthenticationResult{}, authx.NewError(
+					authx.ErrorCodeUnauthenticated,
+					"authenticate adapter test credential",
+					"op", "adapter_test_authenticate",
+				)
 			}
 			return authx.AuthenticationResult{
 				Principal: authx.Principal{ID: input.Token},
@@ -74,7 +78,11 @@ func NewGuard(record func(Snapshot)) *authhttp.Guard {
 		authhttp.WithCredentialResolverFunc(func(_ context.Context, req authhttp.RequestInfo) (any, error) {
 			token := req.Header(HeaderAuthorization)
 			if token == "" {
-				return nil, authx.ErrInvalidAuthenticationCredential
+				return nil, authx.NewError(
+					authx.ErrorCodeInvalidAuthenticationCredential,
+					"resolve adapter test credential",
+					"op", "adapter_test_resolve_credential",
+				)
 			}
 			return credential{Token: token}, nil
 		}),

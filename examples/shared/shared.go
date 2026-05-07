@@ -2,7 +2,6 @@ package shared
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -53,7 +52,11 @@ func newManager() *authx.ProviderManager {
 			func(_ context.Context, credential BearerCredential) (authx.AuthenticationResult, error) {
 				token := strings.TrimSpace(credential.Token)
 				if token == "" {
-					return authx.AuthenticationResult{}, authx.ErrInvalidAuthenticationCredential
+					return authx.AuthenticationResult{}, authx.NewError(
+						authx.ErrorCodeInvalidAuthenticationCredential,
+						"validate bearer credential",
+						"op", "example_authenticate",
+					)
 				}
 
 				roles := collectionlist.NewList("user")
@@ -99,7 +102,11 @@ func newAuthorizer() authx.Authorizer {
 func resolveCredential(_ context.Context, req authhttp.RequestInfo) (any, error) {
 	token, ok := ParseBearer(req.Header("Authorization"))
 	if !ok {
-		return nil, fmt.Errorf("%w: missing bearer token", authx.ErrInvalidAuthenticationCredential)
+		return nil, authx.NewError(
+			authx.ErrorCodeInvalidAuthenticationCredential,
+			"missing bearer token",
+			"op", "example_resolve_credential",
+		)
 	}
 	return BearerCredential{Token: token}, nil
 }

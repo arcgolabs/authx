@@ -13,14 +13,14 @@ type TypedAuthenticationProvider[C any] interface {
 // TypedAuthenticationProviderFunc is a lightweight typed provider helper.
 type TypedAuthenticationProviderFunc[C any] func(ctx context.Context, credential C) (AuthenticationResult, error)
 
-// Authenticate calls fn or returns ErrUnauthenticated when fn is nil.
+// Authenticate calls fn or returns an unauthenticated oops error when fn is nil.
 func (fn TypedAuthenticationProviderFunc[C]) Authenticate(
 	ctx context.Context,
 	credential C,
 ) (AuthenticationResult, error) {
 	if fn == nil {
-		return AuthenticationResult{}, wrapError(
-			ErrUnauthenticated,
+		return AuthenticationResult{}, NewError(
+			ErrorCodeUnauthenticated,
 			"authenticate provider function is nil",
 			"op", "authenticate",
 			"stage", "validate_provider_func",
@@ -63,8 +63,8 @@ func (adapter *typedProviderAdapter[C]) AuthenticateAny(
 ) (AuthenticationResult, error) {
 	credentialType := adapter.CredentialType()
 	if adapter == nil || adapter.provider == nil {
-		return AuthenticationResult{}, wrapError(
-			ErrUnauthenticated,
+		return AuthenticationResult{}, NewError(
+			ErrorCodeUnauthenticated,
 			"authentication provider is nil",
 			"op", "authenticate",
 			"stage", "validate_provider",
@@ -73,8 +73,8 @@ func (adapter *typedProviderAdapter[C]) AuthenticateAny(
 	}
 	typedCredential, ok := credential.(C)
 	if !ok {
-		return AuthenticationResult{}, wrapError(
-			ErrInvalidAuthenticationCredential,
+		return AuthenticationResult{}, NewError(
+			ErrorCodeInvalidAuthenticationCredential,
 			"cast authentication credential",
 			"op", "authenticate",
 			"stage", "cast_credential",
@@ -86,6 +86,7 @@ func (adapter *typedProviderAdapter[C]) AuthenticateAny(
 	if err != nil {
 		return AuthenticationResult{}, wrapError(
 			err,
+			ErrorCodeUnauthenticated,
 			"authenticate credential",
 			"op", "authenticate",
 			"credential_type", credentialType.String(),
@@ -97,14 +98,14 @@ func (adapter *typedProviderAdapter[C]) AuthenticateAny(
 // AuthenticationManagerFunc is a lightweight manager helper.
 type AuthenticationManagerFunc func(ctx context.Context, credential any) (AuthenticationResult, error)
 
-// Authenticate calls fn or returns ErrAuthenticationManagerNotConfigured when fn is nil.
+// Authenticate calls fn or returns a configuration oops error when fn is nil.
 func (fn AuthenticationManagerFunc) Authenticate(
 	ctx context.Context,
 	credential any,
 ) (AuthenticationResult, error) {
 	if fn == nil {
-		return AuthenticationResult{}, wrapError(
-			ErrAuthenticationManagerNotConfigured,
+		return AuthenticationResult{}, NewError(
+			ErrorCodeAuthenticationManagerNotConfigured,
 			"authentication manager function is nil",
 			"op", "authenticate",
 			"stage", "validate_manager_func",
@@ -117,11 +118,11 @@ func (fn AuthenticationManagerFunc) Authenticate(
 // AuthorizerFunc is a lightweight authorizer helper.
 type AuthorizerFunc func(ctx context.Context, input AuthorizationModel) (Decision, error)
 
-// Authorize calls fn or returns ErrAuthorizerNotConfigured when fn is nil.
+// Authorize calls fn or returns a configuration oops error when fn is nil.
 func (fn AuthorizerFunc) Authorize(ctx context.Context, input AuthorizationModel) (Decision, error) {
 	if fn == nil {
-		return Decision{}, wrapError(
-			ErrAuthorizerNotConfigured,
+		return Decision{}, NewError(
+			ErrorCodeAuthorizerNotConfigured,
 			"authorizer function is nil",
 			"op", "authorize",
 			"stage", "validate_authorizer_func",

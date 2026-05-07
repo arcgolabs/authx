@@ -2,7 +2,6 @@ package authx_test
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/arcgolabs/authx"
@@ -28,28 +27,28 @@ func TestClassifyError(t *testing.T) {
 		},
 		{
 			name:     "invalid credential",
-			err:      fmt.Errorf("resolve credential: %w", authx.ErrInvalidAuthenticationCredential),
+			err:      authx.NewError(authx.ErrorCodeInvalidAuthenticationCredential, "resolve credential"),
 			category: authx.ErrorCategoryAuthentication,
 			code:     authx.ErrorCodeInvalidAuthenticationCredential,
 			message:  "unauthorized",
 		},
 		{
 			name:     "unauthenticated joined",
-			err:      fmt.Errorf("authenticate: %w", errors.Join(authx.ErrUnauthenticated, errors.New("provider rejected"))),
+			err:      authx.WrapError(errors.New("provider rejected"), authx.ErrorCodeUnauthenticated, "authenticate"),
 			category: authx.ErrorCategoryAuthentication,
 			code:     authx.ErrorCodeUnauthenticated,
 			message:  "unauthorized",
 		},
 		{
 			name:     "invalid authorization model",
-			err:      authx.ErrInvalidAuthorizationModel,
+			err:      authx.NewError(authx.ErrorCodeInvalidAuthorizationModel, "validate authorization model"),
 			category: authx.ErrorCategoryAuthorization,
 			code:     authx.ErrorCodeInvalidAuthorizationModel,
 			message:  "forbidden",
 		},
 		{
 			name:     "configuration",
-			err:      authx.ErrAuthorizerNotConfigured,
+			err:      authx.NewError(authx.ErrorCodeAuthorizerNotConfigured, "resolve authorizer"),
 			category: authx.ErrorCategoryConfiguration,
 			code:     authx.ErrorCodeAuthorizerNotConfigured,
 			message:  "internal_error",
@@ -103,4 +102,11 @@ func TestEngineErrorsCarryOopsClassification(t *testing.T) {
 	assert.Equal(t, authx.ErrorCategoryAuthentication, ctx["error_category"])
 	assert.Equal(t, authx.ErrorCodeInvalidAuthenticationCredential, ctx["error_code"])
 	assert.Equal(t, "unauthorized", ctx["safe_message"])
+}
+
+func assertAuthxErrorCode(t *testing.T, err error, code string) {
+	t.Helper()
+
+	require.Error(t, err)
+	assert.Equal(t, code, authx.ClassifyError(err).Code)
 }

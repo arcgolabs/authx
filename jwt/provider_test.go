@@ -10,6 +10,7 @@ import (
 	authjwt "github.com/arcgolabs/authx/jwt"
 	collectionlist "github.com/arcgolabs/collectionx/list"
 	jwtlib "github.com/golang-jwt/jwt/v5"
+	"github.com/samber/oops"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,9 +68,27 @@ func TestProviderRejectsEmptyToken(t *testing.T) {
 	provider := authjwt.NewProvider(authjwt.WithHMACSecret([]byte("secret")))
 
 	_, err := provider.Authenticate(context.Background(), authjwt.TokenCredential{Token: " "})
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrInvalidAuthenticationCredential)
-	assert.ErrorIs(t, err, authjwt.ErrTokenEmpty)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeTokenEmpty)
+}
+
+func TestClassifyErrorUsesJWTCodeWithoutOopsFields(t *testing.T) {
+	err := oops.In("external").Code(authjwt.ErrorCodeInvalidToken).New("parse JWT token")
+
+	got := authjwt.ClassifyError(err)
+
+	assert.Equal(t, authx.ErrorCategoryAuthentication, got.Category)
+	assert.Equal(t, authjwt.ErrorCodeInvalidToken, got.Code)
+	assert.Equal(t, "unauthorized", got.SafeMessage)
+}
+
+func TestNewErrorCreatesJWTClassification(t *testing.T) {
+	err := authjwt.NewError(authjwt.ErrorCodeSubjectRequired, "map JWT subject")
+
+	got := authjwt.ClassifyError(err)
+
+	assert.Equal(t, authx.ErrorCategoryAuthentication, got.Category)
+	assert.Equal(t, authjwt.ErrorCodeSubjectRequired, got.Code)
+	assert.Equal(t, "unauthorized", got.SafeMessage)
 }
 
 func TestProviderRejectsInvalidSigningMethod(t *testing.T) {
@@ -83,9 +102,7 @@ func TestProviderRejectsInvalidSigningMethod(t *testing.T) {
 	provider := authjwt.NewProvider(authjwt.WithHMACSecret(secret))
 
 	_, err := provider.Authenticate(context.Background(), authjwt.TokenCredential{Token: token})
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeInvalidToken)
 }
 
 func TestProviderValidatesIssuer(t *testing.T) {
@@ -103,9 +120,7 @@ func TestProviderValidatesIssuer(t *testing.T) {
 	)
 
 	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeInvalidToken)
 }
 
 func TestProviderValidatesAudience(t *testing.T) {
@@ -123,9 +138,7 @@ func TestProviderValidatesAudience(t *testing.T) {
 	)
 
 	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeInvalidToken)
 }
 
 func TestProviderRequiresAllAudiences(t *testing.T) {
@@ -153,9 +166,7 @@ func TestProviderRequiresAllAudiences(t *testing.T) {
 	require.NoError(t, err)
 
 	_, invalidErr := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(invalidToken))
-	require.Error(t, invalidErr)
-	assert.ErrorIs(t, invalidErr, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, invalidErr, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, invalidErr, authjwt.ErrorCodeInvalidToken)
 }
 
 func TestProviderEnforcesRequiredSubject(t *testing.T) {
@@ -172,9 +183,7 @@ func TestProviderEnforcesRequiredSubject(t *testing.T) {
 	)
 
 	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeInvalidToken)
 }
 
 func TestProviderEnforcesRequiredIssuedAt(t *testing.T) {
@@ -198,9 +207,7 @@ func TestProviderEnforcesRequiredIssuedAt(t *testing.T) {
 	)
 
 	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(tokenWithoutIAT))
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeInvalidToken)
 
 	_, withIatErr := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(tokenWithIAT))
 	require.NoError(t, withIatErr)
@@ -225,9 +232,7 @@ func TestProviderEnforcesRequiredExpiration(t *testing.T) {
 	)
 
 	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(tokenWithoutExp))
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeInvalidToken)
 
 	_, withExpErr := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(tokenWithExp))
 	require.NoError(t, withExpErr)
@@ -254,9 +259,7 @@ func TestProviderEnforcesRequiredNotBefore(t *testing.T) {
 	)
 
 	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(tokenWithoutNBF))
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeInvalidToken)
 
 	_, withNbfErr := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(tokenWithNBF))
 	require.NoError(t, withNbfErr)
@@ -273,9 +276,7 @@ func TestProviderSupportsClockSkewForNotBefore(t *testing.T) {
 	})
 	noSkewProvider := authjwt.NewProvider(authjwt.WithHMACSecret(secret))
 	_, noSkewErr := noSkewProvider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
-	require.Error(t, noSkewErr)
-	assert.ErrorIs(t, noSkewErr, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, noSkewErr, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, noSkewErr, authjwt.ErrorCodeInvalidToken)
 
 	withSkewProvider := authjwt.NewProvider(
 		authjwt.WithHMACSecret(secret),
@@ -316,9 +317,7 @@ func TestProviderRejectsMissingKIDWithMultipleSecrets(t *testing.T) {
 	provider := authjwt.NewProvider(authjwt.WithHMACSecrets(secrets))
 
 	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeInvalidToken)
 }
 
 func TestProviderRejectsUnknownKIDWithMultipleSecrets(t *testing.T) {
@@ -335,9 +334,7 @@ func TestProviderRejectsUnknownKIDWithMultipleSecrets(t *testing.T) {
 	provider := authjwt.NewProvider(authjwt.WithHMACSecrets(secrets))
 
 	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
-	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+	assertJWTErrorCode(t, err, authjwt.ErrorCodeInvalidToken)
 }
 
 func TestProviderUsesClaimsMapper(t *testing.T) {
@@ -378,7 +375,8 @@ func TestProviderRejectsMapperError(t *testing.T) {
 
 	_, err := provider.Authenticate(context.Background(), authjwt.TokenCredential{Token: token})
 	require.Error(t, err)
-	assert.ErrorIs(t, err, mapperErr)
+	assert.Equal(t, authx.ErrorCodeInternal, authjwt.ClassifyError(err).Code)
+	assert.Contains(t, err.Error(), mapperErr.Error())
 }
 
 func signToken(t *testing.T, secret []byte, method jwtlib.SigningMethod, claims authjwt.Claims) string {
@@ -388,6 +386,13 @@ func signToken(t *testing.T, secret []byte, method jwtlib.SigningMethod, claims 
 	signed, err := token.SignedString(secret)
 	require.NoError(t, err)
 	return signed
+}
+
+func assertJWTErrorCode(t *testing.T, err error, code string) {
+	t.Helper()
+
+	require.Error(t, err)
+	assert.Equal(t, code, authjwt.ClassifyError(err).Code)
 }
 
 func signTokenWithKID(

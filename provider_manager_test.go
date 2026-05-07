@@ -57,8 +57,7 @@ func TestProviderManagerRoutesMultipleTypedProviders(t *testing.T) {
 func TestProviderManagerProviderNotFound(t *testing.T) {
 	manager := authx.NewProviderManager()
 	_, err := manager.Authenticate(context.Background(), struct{ Value string }{Value: "x"})
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrAuthenticationProviderNotFound)
+	assertAuthxErrorCode(t, err, authx.ErrorCodeAuthenticationProviderNotFound)
 }
 
 func TestProviderManagerVariadicRegister(t *testing.T) {
@@ -99,14 +98,12 @@ func TestProviderManagerZeroValueRegister(t *testing.T) {
 func TestProviderManagerRejectsNilCredential(t *testing.T) {
 	manager := authx.NewProviderManager()
 	_, err := manager.Authenticate(context.Background(), nil)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrInvalidAuthenticationCredential)
+	assertAuthxErrorCode(t, err, authx.ErrorCodeInvalidAuthenticationCredential)
 }
 
 func TestProviderManagerRejectsNilTypedProvider(t *testing.T) {
 	manager := authx.NewProviderManager(authx.NewAuthenticationProvider[string](nil))
 
 	_, err := manager.Authenticate(context.Background(), "alice")
-	require.Error(t, err)
-	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
+	assertAuthxErrorCode(t, err, authx.ErrorCodeUnauthenticated)
 }

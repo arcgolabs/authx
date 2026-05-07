@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/arcgolabs/authx"
-	"github.com/samber/oops"
 )
 
 // Option configures Guard behavior.
@@ -66,20 +65,20 @@ func (guard *Guard) Check(
 	req RequestInfo,
 ) (authx.AuthenticationResult, error) {
 	if guard == nil || guard.engine == nil {
-		return authx.AuthenticationResult{}, wrapRequestError("check", req, ErrNilEngine, "validate guard engine")
+		return authx.AuthenticationResult{}, newRequestError("check", req, authx.ErrorCodeNilEngine, "validate guard engine")
 	}
 	if guard.credentialResolver == nil {
-		return authx.AuthenticationResult{}, wrapRequestError("check", req, ErrCredentialResolverNotConfigured, "validate credential resolver")
+		return authx.AuthenticationResult{}, newRequestError("check", req, ErrorCodeCredentialResolverNotConfigured, "validate credential resolver")
 	}
 
 	credential, err := guard.credentialResolver(ctx, req)
 	if err != nil {
-		return authx.AuthenticationResult{}, wrapRequestError("resolve_credential", req, err, "resolve request credential")
+		return authx.AuthenticationResult{}, wrapRequestError("resolve_credential", req, err, authx.ErrorCodeInvalidAuthenticationCredential, "resolve request credential")
 	}
 
 	result, err := guard.engine.Check(ctx, credential)
 	if err != nil {
-		return authx.AuthenticationResult{}, wrapRequestError("check", req, err, "check request credential")
+		return authx.AuthenticationResult{}, wrapRequestError("check", req, err, authx.ErrorCodeUnauthenticated, "check request credential")
 	}
 	return result, nil
 }
@@ -91,23 +90,23 @@ func (guard *Guard) Can(
 	principal any,
 ) (authx.Decision, error) {
 	if guard == nil || guard.engine == nil {
-		return authx.Decision{}, wrapRequestError("authorize", req, ErrNilEngine, "validate guard engine")
+		return authx.Decision{}, newRequestError("authorize", req, authx.ErrorCodeNilEngine, "validate guard engine")
 	}
 	if guard.authorizationResolver == nil {
-		return authx.Decision{}, wrapRequestError("authorize", req, ErrAuthorizationResolverNotConfigured, "validate authorization resolver")
+		return authx.Decision{}, newRequestError("authorize", req, ErrorCodeAuthorizationResolverNotConfigured, "validate authorization resolver")
 	}
 	if principal == nil {
-		return authx.Decision{}, wrapRequestError("authorize", req, ErrPrincipalNotFound, "validate principal")
+		return authx.Decision{}, newRequestError("authorize", req, ErrorCodePrincipalNotFound, "validate principal")
 	}
 
 	model, err := guard.authorizationResolver(ctx, req, principal)
 	if err != nil {
-		return authx.Decision{}, wrapRequestError("resolve_authorization", req, err, "resolve authorization model")
+		return authx.Decision{}, wrapRequestError("resolve_authorization", req, err, authx.ErrorCodeInvalidAuthorizationModel, "resolve authorization model")
 	}
 
 	decision, err := guard.engine.Can(ctx, model)
 	if err != nil {
-		return authx.Decision{}, wrapRequestError("authorize", req, err, "authorize request")
+		return authx.Decision{}, wrapRequestError("authorize", req, err, authx.ErrorCodeInternal, "authorize request")
 	}
 	return decision, nil
 }
@@ -118,44 +117,56 @@ func (guard *Guard) Require(
 	req RequestInfo,
 ) (authx.AuthenticationResult, authx.Decision, error) {
 	if guard == nil || guard.engine == nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("require", req, ErrNilEngine, "validate guard engine")
+		return authx.AuthenticationResult{}, authx.Decision{}, newRequestError("require", req, authx.ErrorCodeNilEngine, "validate guard engine")
 	}
 	if guard.credentialResolver == nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("require", req, ErrCredentialResolverNotConfigured, "validate credential resolver")
+		return authx.AuthenticationResult{}, authx.Decision{}, newRequestError("require", req, ErrorCodeCredentialResolverNotConfigured, "validate credential resolver")
 	}
 	if guard.authorizationResolver == nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("require", req, ErrAuthorizationResolverNotConfigured, "validate authorization resolver")
+		return authx.AuthenticationResult{}, authx.Decision{}, newRequestError("require", req, ErrorCodeAuthorizationResolverNotConfigured, "validate authorization resolver")
 	}
 
 	credential, err := guard.credentialResolver(ctx, req)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("resolve_credential", req, err, "resolve request credential")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("resolve_credential", req, err, authx.ErrorCodeInvalidAuthenticationCredential, "resolve request credential")
 	}
 
 	result, err := guard.engine.Check(ctx, credential)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("check", req, err, "check request credential")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("check", req, err, authx.ErrorCodeUnauthenticated, "check request credential")
 	}
 
 	if result.Principal == nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("require", req, ErrPrincipalNotFound, "extract principal from authentication result")
+		return authx.AuthenticationResult{}, authx.Decision{}, newRequestError("require", req, ErrorCodePrincipalNotFound, "extract principal from authentication result")
 	}
 
 	model, err := guard.authorizationResolver(ctx, req, result.Principal)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("resolve_authorization", req, err, "resolve authorization model")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("resolve_authorization", req, err, authx.ErrorCodeInvalidAuthorizationModel, "resolve authorization model")
 	}
 
 	decision, err := guard.engine.Can(ctx, model)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("authorize", req, err, "authorize request")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("authorize", req, err, authx.ErrorCodeInternal, "authorize request")
 	}
 
 	return result, decision, nil
 }
 
-func wrapRequestError(op string, req RequestInfo, err error, message string) error {
+func newRequestError(op string, req RequestInfo, code string, message string) error {
+	classification := ClassificationForCode(code)
+	return requestErrorBuilder(classification, requestErrorFields(op, req, classification)...).New(message)
+}
+
+func wrapRequestError(op string, req RequestInfo, err error, fallbackCode string, message string) error {
 	classification := ClassifyError(err)
+	if classification.Code == authx.ErrorCodeInternal && fallbackCode != "" {
+		classification = ClassificationForCode(fallbackCode)
+	}
+	return requestErrorBuilder(classification, requestErrorFields(op, req, classification)...).Wrapf(err, "%s", message)
+}
+
+func requestErrorFields(op string, req RequestInfo, classification authx.ErrorClassification) []any {
 	fields := []any{
 		"op", op,
 		"method", req.Method,
@@ -164,9 +175,5 @@ func wrapRequestError(op string, req RequestInfo, err error, message string) err
 	}
 	fields = append(fields, classification.OopsFields()...)
 	fields = append(fields, "http_status", StatusCodeFromClassification(classification))
-
-	return oops.In("authx/http").
-		Code(classification.Code).
-		With(fields...).
-		Wrapf(err, "%s", message)
+	return fields
 }

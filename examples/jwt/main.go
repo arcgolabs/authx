@@ -122,7 +122,11 @@ func newJWTAuthorizer() authx.Authorizer {
 func resolveJWTCredential(_ context.Context, req authhttp.RequestInfo) (any, error) {
 	token, ok := shared.ParseBearer(req.Header("Authorization"))
 	if !ok {
-		return nil, authx.ErrInvalidAuthenticationCredential
+		return nil, authx.NewError(
+			authx.ErrorCodeInvalidAuthenticationCredential,
+			"missing bearer token",
+			"op", "example_resolve_jwt_credential",
+		)
 	}
 	return authjwt.NewTokenCredential(token), nil
 }

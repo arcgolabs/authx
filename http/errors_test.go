@@ -32,7 +32,7 @@ func TestClassifyError(t *testing.T) {
 		},
 		{
 			name:     "credential resolver missing",
-			err:      authhttp.ErrCredentialResolverNotConfigured,
+			err:      authhttp.NewError(authhttp.ErrorCodeCredentialResolverNotConfigured, "validate credential resolver"),
 			category: authx.ErrorCategoryConfiguration,
 			code:     authhttp.ErrorCodeCredentialResolverNotConfigured,
 			status:   http.StatusInternalServerError,
@@ -40,7 +40,7 @@ func TestClassifyError(t *testing.T) {
 		},
 		{
 			name:     "authentication failure",
-			err:      authx.ErrUnauthenticated,
+			err:      authx.NewError(authx.ErrorCodeUnauthenticated, "authenticate"),
 			category: authx.ErrorCategoryAuthentication,
 			code:     authx.ErrorCodeUnauthenticated,
 			status:   http.StatusUnauthorized,
@@ -48,7 +48,15 @@ func TestClassifyError(t *testing.T) {
 		},
 		{
 			name:     "principal mismatch",
-			err:      authhttp.ErrPrincipalTypeMismatch,
+			err:      authhttp.NewError(authhttp.ErrorCodePrincipalTypeMismatch, "cast principal"),
+			category: authx.ErrorCategoryAuthorization,
+			code:     authhttp.ErrorCodePrincipalTypeMismatch,
+			status:   http.StatusForbidden,
+			message:  "forbidden",
+		},
+		{
+			name:     "http code without context",
+			err:      oops.In("external").Code(authhttp.ErrorCodePrincipalTypeMismatch).New("cast principal"),
 			category: authx.ErrorCategoryAuthorization,
 			code:     authhttp.ErrorCodePrincipalTypeMismatch,
 			status:   http.StatusForbidden,

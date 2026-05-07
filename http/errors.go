@@ -1,23 +1,10 @@
 package authhttp
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/arcgolabs/authx"
-)
-
-var (
-	// ErrNilEngine indicates that Guard was used without an engine.
-	ErrNilEngine = errors.New("authx/http: engine is nil")
-	// ErrCredentialResolverNotConfigured indicates that credential resolution is missing.
-	ErrCredentialResolverNotConfigured = errors.New("authx/http: credential resolver is not configured")
-	// ErrAuthorizationResolverNotConfigured indicates that authorization resolution is missing.
-	ErrAuthorizationResolverNotConfigured = errors.New("authx/http: authorization resolver is not configured")
-	// ErrPrincipalNotFound indicates that authentication did not produce a principal.
-	ErrPrincipalNotFound = errors.New("authx/http: principal not found")
-	// ErrPrincipalTypeMismatch indicates that the authenticated principal does not match the expected type.
-	ErrPrincipalTypeMismatch = errors.New("authx/http: principal type mismatch")
+	"github.com/samber/oops"
 )
 
 const (
@@ -31,23 +18,30 @@ const (
 	ErrorCodePrincipalTypeMismatch = "http_principal_type_mismatch"
 )
 
-// ClassifyError returns the HTTP-aware classification for known authx/http errors.
+// ClassifyError returns the HTTP-aware classification for oops-classified errors.
 func ClassifyError(err error) authx.ErrorClassification {
-	switch {
-	case err == nil:
+	if err == nil {
 		return authx.ClassifyError(nil)
-	case errors.Is(err, ErrCredentialResolverNotConfigured):
-		return httpConfigurationClassification(ErrorCodeCredentialResolverNotConfigured)
-	case errors.Is(err, ErrAuthorizationResolverNotConfigured):
-		return httpConfigurationClassification(ErrorCodeAuthorizationResolverNotConfigured)
-	case errors.Is(err, ErrNilEngine):
-		return httpConfigurationClassification(authx.ErrorCodeNilEngine)
-	case errors.Is(err, ErrPrincipalNotFound):
-		return httpAuthorizationClassification(ErrorCodePrincipalNotFound)
-	case errors.Is(err, ErrPrincipalTypeMismatch):
-		return httpAuthorizationClassification(ErrorCodePrincipalTypeMismatch)
+	}
+	classification := authx.ClassifyError(err)
+	if isHTTPErrorCode(classification.Code) {
+		return ClassificationForCode(classification.Code)
+	}
+	return ClassificationForCode(classification.Code).Merge(classification)
+}
+
+// ClassificationForCode returns the HTTP-aware default classification for code.
+func ClassificationForCode(code string) authx.ErrorClassification {
+	switch code {
+	case ErrorCodeCredentialResolverNotConfigured,
+		ErrorCodeAuthorizationResolverNotConfigured,
+		authx.ErrorCodeNilEngine:
+		return httpConfigurationClassification(code)
+	case ErrorCodePrincipalNotFound,
+		ErrorCodePrincipalTypeMismatch:
+		return httpAuthorizationClassification(code)
 	default:
-		return authx.ClassifyError(err)
+		return authx.ClassificationForCode(code)
 	}
 }
 
@@ -97,6 +91,37 @@ func httpAuthorizationClassification(code string) authx.ErrorClassification {
 		Code:        code,
 		SafeMessage: "forbidden",
 	}
+}
+
+func isHTTPErrorCode(code string) bool {
+	switch code {
+	case ErrorCodeCredentialResolverNotConfigured,
+		ErrorCodeAuthorizationResolverNotConfigured,
+		ErrorCodePrincipalNotFound,
+		ErrorCodePrincipalTypeMismatch:
+		return true
+	default:
+		return false
+	}
+}
+
+func requestErrorBuilder(classification authx.ErrorClassification, fields ...any) oops.OopsErrorBuilder {
+	return oops.In("authx/http").
+		Code(classification.Code).
+		Public(classification.SafeMessage).
+		With(fields...)
+}
+
+// NewError creates an oops-classified authx/http error for code.
+func NewError(code string, message string, fields ...any) error {
+	return newHTTPError(code, message, fields...)
+}
+
+func newHTTPError(code string, message string, fields ...any) error {
+	classification := ClassificationForCode(code)
+	fields = append(fields, classification.OopsFields()...)
+	fields = append(fields, "http_status", StatusCodeFromClassification(classification))
+	return requestErrorBuilder(classification, fields...).New(message)
 }
 
 func errorOopsFields(err error) []any {

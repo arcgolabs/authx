@@ -25,7 +25,11 @@ func NewGuard(dataset Dataset) *authhttp.Guard {
 	manager := authx.NewProviderManager(
 		authx.NewAuthenticationProviderFunc(func(_ context.Context, input credential) (authx.AuthenticationResult, error) {
 			if !dataset.HasUser(input.UserID) {
-				return authx.AuthenticationResult{}, authx.ErrUnauthenticated
+				return authx.AuthenticationResult{}, authx.NewError(
+					authx.ErrorCodeUnauthenticated,
+					"authenticate benchmark credential",
+					"op", "benchmark_authenticate",
+				)
 			}
 			return authx.AuthenticationResult{
 				Principal: authx.Principal{ID: input.UserID},
@@ -61,7 +65,11 @@ func NewGuard(dataset Dataset) *authhttp.Guard {
 func resolveCredential(_ context.Context, req authhttp.RequestInfo) (any, error) {
 	userID := req.Header(HeaderUserID)
 	if userID == "" {
-		return nil, authx.ErrInvalidAuthenticationCredential
+		return nil, authx.NewError(
+			authx.ErrorCodeInvalidAuthenticationCredential,
+			"resolve benchmark credential",
+			"op", "benchmark_resolve_credential",
+		)
 	}
 	return credential{UserID: userID}, nil
 }

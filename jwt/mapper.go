@@ -11,7 +11,7 @@ import (
 // PrincipalClaimsMapper maps Claims into authx.Principal using sub/roles/permissions claims.
 func PrincipalClaimsMapper(_ context.Context, claims *Claims) (authx.AuthenticationResult, error) {
 	if claims == nil || claims.Subject == "" {
-		return authx.AuthenticationResult{}, unauthenticatedError(ErrSubjectRequired, "map JWT subject")
+		return authx.AuthenticationResult{}, newError(ErrorCodeSubjectRequired, "map JWT subject")
 	}
 
 	return authx.AuthenticationResult{

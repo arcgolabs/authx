@@ -5,7 +5,12 @@ import "context"
 // RegisterProvider appends providers to engine using the engine's provider-backed manager.
 func RegisterProvider(engine *Engine, providers ...AuthenticationProvider) error {
 	if engine == nil {
-		return ErrNilEngine
+		return NewError(
+			ErrorCodeNilEngine,
+			"validate engine",
+			"op", "register_provider",
+			"stage", "validate_engine",
+		)
 	}
 	return engine.RegisterProvider(providers...)
 }

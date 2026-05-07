@@ -2,7 +2,6 @@ package authx
 
 import (
 	"context"
-	"errors"
 	"reflect"
 
 	collectionmapping "github.com/arcgolabs/collectionx/mapping"
@@ -44,16 +43,16 @@ func (manager *ProviderManager) Authenticate(
 	credential any,
 ) (AuthenticationResult, error) {
 	if credential == nil {
-		return AuthenticationResult{}, wrapError(
-			ErrInvalidAuthenticationCredential,
+		return AuthenticationResult{}, NewError(
+			ErrorCodeInvalidAuthenticationCredential,
 			"validate authentication credential",
 			"op", "authenticate",
 			"stage", "validate_credential",
 		)
 	}
 	if manager == nil {
-		return AuthenticationResult{}, wrapError(
-			ErrAuthenticationManagerNotConfigured,
+		return AuthenticationResult{}, NewError(
+			ErrorCodeAuthenticationManagerNotConfigured,
 			"validate authentication manager",
 			"op", "authenticate",
 			"stage", "validate_manager",
@@ -64,8 +63,8 @@ func (manager *ProviderManager) Authenticate(
 	provider, ok := manager.providers.Get(credentialType)
 	providerCount := manager.providers.Len()
 	if !ok {
-		return AuthenticationResult{}, wrapError(
-			ErrAuthenticationProviderNotFound,
+		return AuthenticationResult{}, NewError(
+			ErrorCodeAuthenticationProviderNotFound,
 			"resolve authentication provider",
 			"op", "authenticate",
 			"stage", "resolve_provider",
@@ -77,7 +76,8 @@ func (manager *ProviderManager) Authenticate(
 	result, err := provider.AuthenticateAny(ctx, credential)
 	if err != nil {
 		return AuthenticationResult{}, wrapError(
-			errors.Join(ErrUnauthenticated, err),
+			err,
+			ErrorCodeUnauthenticated,
 			"authenticate credential",
 			"op", "authenticate",
 			"stage", "provider_authenticate",

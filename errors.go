@@ -1,10 +1,6 @@
 package authx
 
-import (
-	"errors"
-
-	"github.com/samber/oops"
-)
+import "github.com/samber/oops"
 
 // ErrorCategory is a stable, transport-neutral auth failure category.
 type ErrorCategory string
@@ -45,25 +41,6 @@ const (
 	ErrorCodeInternal = "internal_error"
 )
 
-var (
-	// ErrInvalidAuthenticationCredential indicates that the input credential is nil or malformed.
-	ErrInvalidAuthenticationCredential = errors.New("authx: invalid authentication credential")
-	// ErrInvalidAuthorizationModel indicates that the authorization model is incomplete.
-	ErrInvalidAuthorizationModel = errors.New("authx: invalid authorization model")
-	// ErrAuthenticationProviderNotFound indicates that no provider matches the credential type.
-	ErrAuthenticationProviderNotFound = errors.New("authx: authentication provider not found")
-	// ErrAuthenticationManagerNotConfigured indicates that Engine has no authentication manager.
-	ErrAuthenticationManagerNotConfigured = errors.New("authx: authentication manager not configured")
-	// ErrAuthenticationProviderRegistrationUnsupported indicates that the configured manager cannot register providers.
-	ErrAuthenticationProviderRegistrationUnsupported = errors.New("authx: authentication provider registration unsupported")
-	// ErrAuthorizerNotConfigured indicates that Engine has no authorizer.
-	ErrAuthorizerNotConfigured = errors.New("authx: authorizer not configured")
-	// ErrNilEngine indicates that an Engine receiver or argument is nil.
-	ErrNilEngine = errors.New("authx: engine is nil")
-	// ErrUnauthenticated indicates that authentication failed.
-	ErrUnauthenticated = errors.New("authx: unauthenticated")
-)
-
 // ErrorClassification describes a safe, stable view of an authx error.
 type ErrorClassification struct {
 	Category    ErrorCategory
@@ -80,37 +57,106 @@ func (classification ErrorClassification) OopsFields() []any {
 	}
 }
 
-// ClassifyError returns a stable category/code/message for known authx errors.
+// Merge overlays non-empty fields from override onto classification.
+func (classification ErrorClassification) Merge(override ErrorClassification) ErrorClassification {
+	if override.Category != "" {
+		classification.Category = override.Category
+	}
+	if override.Code != "" {
+		classification.Code = override.Code
+	}
+	if override.SafeMessage != "" {
+		classification.SafeMessage = override.SafeMessage
+	}
+	return classification
+}
+
+// ClassifyError returns a stable category/code/message for oops-classified errors.
 func ClassifyError(err error) ErrorClassification {
-	switch {
-	case err == nil:
+	if err == nil {
 		return ErrorClassification{
 			Category:    ErrorCategoryNone,
 			Code:        ErrorCodeNone,
 			SafeMessage: "",
 		}
-	case errors.Is(err, ErrAuthenticationManagerNotConfigured):
-		return configurationClassification(ErrorCodeAuthenticationManagerNotConfigured)
-	case errors.Is(err, ErrAuthenticationProviderRegistrationUnsupported):
-		return configurationClassification(ErrorCodeAuthenticationProviderRegistrationUnsupported)
-	case errors.Is(err, ErrAuthorizerNotConfigured):
-		return configurationClassification(ErrorCodeAuthorizerNotConfigured)
-	case errors.Is(err, ErrNilEngine):
-		return configurationClassification(ErrorCodeNilEngine)
-	case errors.Is(err, ErrInvalidAuthenticationCredential):
-		return authenticationClassification(ErrorCodeInvalidAuthenticationCredential)
-	case errors.Is(err, ErrAuthenticationProviderNotFound):
-		return authenticationClassification(ErrorCodeAuthenticationProviderNotFound)
-	case errors.Is(err, ErrUnauthenticated):
-		return authenticationClassification(ErrorCodeUnauthenticated)
-	case errors.Is(err, ErrInvalidAuthorizationModel):
-		return authorizationClassification(ErrorCodeInvalidAuthorizationModel)
+	}
+	if classification, ok := classificationFromOops(err); ok {
+		return classification
+	}
+	return ClassificationForCode(ErrorCodeInternal)
+}
+
+// ClassificationForCode returns the default classification for a stable error code.
+func ClassificationForCode(code string) ErrorClassification {
+	if code == "" {
+		code = ErrorCodeInternal
+	}
+
+	switch code {
+	case ErrorCodeNone:
+		return ErrorClassification{
+			Category:    ErrorCategoryNone,
+			Code:        ErrorCodeNone,
+			SafeMessage: "",
+		}
+	case ErrorCodeAuthenticationManagerNotConfigured,
+		ErrorCodeAuthenticationProviderRegistrationUnsupported,
+		ErrorCodeAuthorizerNotConfigured,
+		ErrorCodeNilEngine:
+		return configurationClassification(code)
+	case ErrorCodeInvalidAuthenticationCredential,
+		ErrorCodeAuthenticationProviderNotFound,
+		ErrorCodeUnauthenticated:
+		return authenticationClassification(code)
+	case ErrorCodeInvalidAuthorizationModel:
+		return authorizationClassification(code)
 	default:
 		return ErrorClassification{
 			Category:    ErrorCategoryInternal,
-			Code:        ErrorCodeInternal,
+			Code:        code,
 			SafeMessage: "internal_error",
 		}
+	}
+}
+
+func classificationFromOops(err error) (ErrorClassification, bool) {
+	oopsErr, ok := oops.AsOops(err)
+	if !ok {
+		return ErrorClassification{}, false
+	}
+
+	code := stringValue(oopsErr.Code())
+	classification := ClassificationForCode(code)
+	ctx := oopsErr.Context()
+	if ctxCode := stringValue(ctx["error_code"]); code == "" && ctxCode != "" {
+		classification = ClassificationForCode(ctxCode)
+	}
+	if category := errorCategoryValue(ctx["error_category"]); category != "" {
+		classification.Category = category
+	}
+	if safeMessage := stringValue(ctx["safe_message"]); safeMessage != "" {
+		classification.SafeMessage = safeMessage
+	}
+	return classification, true
+}
+
+func stringValue(value any) string {
+	switch typed := value.(type) {
+	case string:
+		return typed
+	default:
+		return ""
+	}
+}
+
+func errorCategoryValue(value any) ErrorCategory {
+	switch typed := value.(type) {
+	case ErrorCategory:
+		return typed
+	case string:
+		return ErrorCategory(typed)
+	default:
+		return ""
 	}
 }
 
@@ -138,12 +184,33 @@ func configurationClassification(code string) ErrorClassification {
 	}
 }
 
-func wrapError(err error, message string, kv ...any) error {
+// NewError creates an oops-classified authx error for code.
+func NewError(code string, message string, kv ...any) error {
+	classification := ClassificationForCode(code)
+	return classifiedBuilder("authx", classification, kv...).New(message)
+}
+
+// WrapError wraps err with an oops-classified authx error.
+func WrapError(err error, fallbackCode string, message string, kv ...any) error {
+	if err == nil {
+		return NewError(fallbackCode, message, kv...)
+	}
 	classification := ClassifyError(err)
+	if classification.Code == ErrorCodeInternal && fallbackCode != "" {
+		classification = ClassificationForCode(fallbackCode)
+	}
+	return classifiedBuilder("authx", classification, kv...).Wrapf(err, "%s", message)
+}
+
+func wrapError(err error, fallbackCode string, message string, kv ...any) error {
+	return WrapError(err, fallbackCode, message, kv...)
+}
+
+func classifiedBuilder(domain string, classification ErrorClassification, kv ...any) oops.OopsErrorBuilder {
 	fields := append([]any{}, kv...)
 	fields = append(fields, classification.OopsFields()...)
-	return oops.In("authx").
+	return oops.In(domain).
 		Code(classification.Code).
-		With(fields...).
-		Wrapf(err, "%s", message)
+		Public(classification.SafeMessage).
+		With(fields...)
 }

@@ -2,7 +2,6 @@ package authhttp_test
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"testing"
 
@@ -113,7 +112,7 @@ func TestTypedGuardPrincipalTypeMismatch(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected principal type mismatch error")
 	}
-	if !errors.Is(err, authhttp.ErrPrincipalTypeMismatch) {
-		t.Fatalf("unexpected error: %v", err)
+	if got := authhttp.ClassifyError(err).Code; got != authhttp.ErrorCodePrincipalTypeMismatch {
+		t.Fatalf("unexpected error code: %s (%v)", got, err)
 	}
 }

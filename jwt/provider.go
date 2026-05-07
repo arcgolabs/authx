@@ -2,15 +2,12 @@ package authjwt
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/arcgolabs/authx"
 	collectionlist "github.com/arcgolabs/collectionx/list"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/samber/oops"
 )
 
 // ClaimsMapper maps validated JWT claims into an authx authentication result.
@@ -93,10 +90,10 @@ func WithHMACSecrets(keys map[string][]byte, methods ...string) Option {
 
 		provider.keyfunc = func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("validate signing method: %w", ErrInvalidToken)
+				return nil, newError(ErrorCodeInvalidToken, "validate signing method")
 			}
 			if configuredKeys == nil {
-				return nil, fmt.Errorf("resolve signing key: %w", ErrInvalidToken)
+				return nil, newError(ErrorCodeInvalidToken, "resolve signing key")
 			}
 
 			kid := parseStringHeader(token.Header, "kid")
@@ -109,12 +106,12 @@ func WithHMACSecrets(keys map[string][]byte, methods ...string) Option {
 						return secret, nil
 					}
 				}
-				return nil, fmt.Errorf("resolve signing key by kid: %w", ErrInvalidToken)
+				return nil, newError(ErrorCodeInvalidToken, "resolve signing key by kid")
 			}
 
 			secret, ok := configuredKeys[kid]
 			if !ok {
-				return nil, fmt.Errorf("resolve signing key by kid: %w", ErrInvalidToken)
+				return nil, newError(ErrorCodeInvalidToken, "resolve signing key by kid", "kid", kid)
 			}
 			return secret, nil
 		}
@@ -260,32 +257,32 @@ func (provider *Provider) Authenticate(
 	credential TokenCredential,
 ) (authx.AuthenticationResult, error) {
 	if provider == nil {
-		return authx.AuthenticationResult{}, unauthenticatedError(ErrKeyfuncNotConfigured, "validate JWT provider")
+		return authx.AuthenticationResult{}, newError(ErrorCodeKeyfuncNotConfigured, "validate JWT provider")
 	}
 	if provider.keyfunc == nil {
-		return authx.AuthenticationResult{}, unauthenticatedError(ErrKeyfuncNotConfigured, "validate JWT keyfunc")
+		return authx.AuthenticationResult{}, newError(ErrorCodeKeyfuncNotConfigured, "validate JWT keyfunc")
 	}
 
 	tokenString := strings.TrimSpace(credential.Token)
 	if tokenString == "" {
-		return authx.AuthenticationResult{}, invalidCredentialError(ErrTokenEmpty, "validate JWT credential")
+		return authx.AuthenticationResult{}, newError(ErrorCodeTokenEmpty, "validate JWT credential")
 	}
 
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, provider.keyfunc, provider.jwtParserOptions()...)
 	if err != nil {
-		return authx.AuthenticationResult{}, unauthenticatedError(errors.Join(ErrInvalidToken, err), "parse JWT token")
+		return authx.AuthenticationResult{}, wrapError(err, ErrorCodeInvalidToken, "parse JWT token")
 	}
 	if token == nil || !token.Valid {
-		return authx.AuthenticationResult{}, unauthenticatedError(ErrInvalidToken, "validate JWT token")
+		return authx.AuthenticationResult{}, newError(ErrorCodeInvalidToken, "validate JWT token")
 	}
 	if provider.requireIAT && claims.IssuedAt == nil {
-		return authx.AuthenticationResult{}, unauthenticatedError(ErrInvalidToken, "validate JWT issued-at claim")
+		return authx.AuthenticationResult{}, newError(ErrorCodeInvalidToken, "validate JWT issued-at claim")
 	}
 
 	result, err := provider.claimsMapper(ctx, claims)
 	if err != nil {
-		return authx.AuthenticationResult{}, fmt.Errorf("map JWT claims: %w", err)
+		return authx.AuthenticationResult{}, wrapError(err, authx.ErrorCodeInternal, "map JWT claims")
 	}
 	return result, nil
 }
@@ -300,20 +297,4 @@ func (provider *Provider) jwtParserOptions() []jwt.ParserOption {
 	)
 	options.Merge(provider.parserOptions)
 	return options.Values()
-}
-
-func invalidCredentialError(err error, message string) error {
-	return classifiedError(errors.Join(authx.ErrInvalidAuthenticationCredential, err), message)
-}
-
-func unauthenticatedError(err error, message string) error {
-	return classifiedError(errors.Join(authx.ErrUnauthenticated, err), message)
-}
-
-func classifiedError(err error, message string) error {
-	classification := authx.ClassifyError(err)
-	return oops.In("authx/jwt").
-		Code(classification.Code).
-		With(classification.OopsFields()...).
-		Wrapf(err, "authx/jwt: %s", message)
 }

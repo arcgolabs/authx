@@ -42,8 +42,8 @@ func (engine *Engine) SetAuthenticationManager(manager AuthenticationManager) {
 // RegisterProvider appends providers to the engine's provider-backed authentication manager.
 func (engine *Engine) RegisterProvider(providers ...AuthenticationProvider) error {
 	if engine == nil {
-		return wrapError(
-			ErrNilEngine,
+		return NewError(
+			ErrorCodeNilEngine,
 			"validate engine",
 			"op", "register_provider",
 			"stage", "validate_engine",
@@ -74,8 +74,8 @@ func (engine *Engine) resolveProviderRegistrar() (ProviderRegistrar, error) {
 
 	registrar, ok := engine.authn.(ProviderRegistrar)
 	if !ok {
-		return nil, wrapError(
-			ErrAuthenticationProviderRegistrationUnsupported,
+		return nil, NewError(
+			ErrorCodeAuthenticationProviderRegistrationUnsupported,
 			"resolve provider registrar",
 			"op", "register_provider",
 			"stage", "resolve_registrar",
@@ -124,8 +124,8 @@ func (engine *Engine) RegisterHook(hooks ...Hook) {
 // Check authenticates credential and returns principal.
 func (engine *Engine) Check(ctx context.Context, credential any) (AuthenticationResult, error) {
 	if credential == nil {
-		return AuthenticationResult{}, wrapError(
-			ErrInvalidAuthenticationCredential,
+		return AuthenticationResult{}, NewError(
+			ErrorCodeInvalidAuthenticationCredential,
 			"validate authentication credential",
 			"op", "check",
 			"stage", "validate_credential",
@@ -136,9 +136,9 @@ func (engine *Engine) Check(ctx context.Context, credential any) (Authentication
 
 	authn, hooks := engine.snapshotCheckDependencies()
 	if authn == nil {
-		engine.logError("authx check failed", "credential_type", credentialType, "error", ErrAuthenticationManagerNotConfigured)
-		return AuthenticationResult{}, wrapError(
-			ErrAuthenticationManagerNotConfigured,
+		engine.logError("authx check failed", "credential_type", credentialType, "error", ErrorCodeAuthenticationManagerNotConfigured)
+		return AuthenticationResult{}, NewError(
+			ErrorCodeAuthenticationManagerNotConfigured,
 			"resolve authentication manager",
 			"op", "check",
 			"stage", "resolve_manager",
@@ -157,6 +157,7 @@ func (engine *Engine) Check(ctx context.Context, credential any) (Authentication
 		engine.logError("authx check failed", "credential_type", credentialType, "error", err)
 		return AuthenticationResult{}, wrapError(
 			err,
+			ErrorCodeUnauthenticated,
 			"authenticate credential",
 			"op", "check",
 			"credential_type", credentialType,
@@ -171,6 +172,7 @@ func (engine *Engine) Can(ctx context.Context, input AuthorizationModel) (Decisi
 	if err := validateAuthorizationModel(input); err != nil {
 		return Decision{}, wrapError(
 			err,
+			ErrorCodeInvalidAuthorizationModel,
 			"validate authorization model",
 			"op", "authorize",
 			"stage", "validate_input",
@@ -183,9 +185,9 @@ func (engine *Engine) Can(ctx context.Context, input AuthorizationModel) (Decisi
 
 	authorizer, hooks := engine.snapshotCanDependencies()
 	if authorizer == nil {
-		engine.logError("authx can failed", "action", input.Action, "resource", input.Resource, "error", ErrAuthorizerNotConfigured)
-		return Decision{}, wrapError(
-			ErrAuthorizerNotConfigured,
+		engine.logError("authx can failed", "action", input.Action, "resource", input.Resource, "error", ErrorCodeAuthorizerNotConfigured)
+		return Decision{}, NewError(
+			ErrorCodeAuthorizerNotConfigured,
 			"resolve authorizer",
 			"op", "authorize",
 			"stage", "resolve_authorizer",
@@ -205,6 +207,7 @@ func (engine *Engine) Can(ctx context.Context, input AuthorizationModel) (Decisi
 		engine.logError("authx can failed", "action", input.Action, "resource", input.Resource, "error", err)
 		return Decision{}, wrapError(
 			err,
+			ErrorCodeInternal,
 			"authorize request",
 			"op", "authorize",
 			"action", input.Action,
@@ -247,6 +250,7 @@ func runBeforeCheckHooks(ctx context.Context, hooks []Hook, credential any) erro
 		if err := hook.BeforeCheck(ctx, credential); err != nil {
 			return wrapError(
 				err,
+				ErrorCodeInternal,
 				"before check hook",
 				"op", "check",
 				"stage", "before_hook",
@@ -274,6 +278,7 @@ func runBeforeCanHooks(ctx context.Context, hooks []Hook, input AuthorizationMod
 		if err := hook.BeforeCan(ctx, input); err != nil {
 			return wrapError(
 				err,
+				ErrorCodeInternal,
 				"before authorization hook",
 				"op", "authorize",
 				"stage", "before_hook",
@@ -296,8 +301,8 @@ func runAfterCanHooks(ctx context.Context, hooks []Hook, input AuthorizationMode
 
 func validateAuthorizationModel(input AuthorizationModel) error {
 	if input.Action == "" || input.Resource == "" {
-		return wrapError(
-			ErrInvalidAuthorizationModel,
+		return NewError(
+			ErrorCodeInvalidAuthorizationModel,
 			"authorization action and resource are required",
 			"op", "validate_authorization_model",
 			"action", input.Action,
@@ -306,8 +311,8 @@ func validateAuthorizationModel(input AuthorizationModel) error {
 		)
 	}
 	if input.Principal == nil {
-		return wrapError(
-			ErrInvalidAuthorizationModel,
+		return NewError(
+			ErrorCodeInvalidAuthorizationModel,
 			"authorization principal is required",
 			"op", "validate_authorization_model",
 			"action", input.Action,
