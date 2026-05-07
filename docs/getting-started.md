@@ -26,7 +26,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/arcgolabs/authx"
@@ -49,7 +48,11 @@ func main() {
 					in usernamePassword,
 				) (authx.AuthenticationResult, error) {
 					if in.Username != "alice" || in.Password != "secret" {
-						return authx.AuthenticationResult{}, fmt.Errorf("invalid credentials")
+						return authx.AuthenticationResult{}, authx.NewError(
+							authx.ErrorCodeInvalidAuthenticationCredential,
+							"validate username/password credential",
+							"op", "example_authenticate",
+						)
 					}
 					return authx.AuthenticationResult{
 						Principal: authx.Principal{ID: in.Username},
@@ -93,6 +96,8 @@ go mod init example.com/authx-minimal
 go get github.com/arcgolabs/authx@latest
 go run .
 ```
+
+Provider and resolver failures should return classified errors, usually through `authx.NewError` or `authx.WrapError`. HTTP adapters use `ClassifyError` to map those errors to safe response messages and status codes.
 
 ## Next
 

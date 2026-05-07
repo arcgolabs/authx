@@ -75,6 +75,7 @@ Full std adapter sample (`chi + net/http`): [HTTP integration](./http-integratio
 
 - `Check` returns `AuthenticationResult` and error; invalid credentials should surface as explicit errors (not silent success).
 - `Can` returns `Decision` and error; policy failures should not be silently treated as deny without an observable error path where appropriate.
+- Use `NewError` and `WrapError` to create classified errors; stable `ErrorCode*` values replace sentinel error matching.
 - `ClassifyError` returns stable `ErrorClassification` values (`authentication`, `authorization`, `configuration`, `internal`) with safe response messages.
 - Errors wrapped by authx use `oops` metadata such as `error_category`, `error_code`, and `safe_message`; HTTP request errors also include `http_status`.
 - HTTP middleware maps failures to stable status codes (`401` / `403` / `500`) through the classification helpers; see package docs for `StatusCodeFromError`.

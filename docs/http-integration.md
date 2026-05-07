@@ -51,7 +51,11 @@ func main() {
 	manager := authx.NewProviderManager(
 		authx.NewAuthenticationProviderFunc(func(_ context.Context, c bearerCredential) (authx.AuthenticationResult, error) {
 			if c.Token != "secret-token" {
-				return authx.AuthenticationResult{}, fmt.Errorf("invalid token")
+				return authx.AuthenticationResult{}, authx.NewError(
+					authx.ErrorCodeUnauthenticated,
+					"authenticate bearer token",
+					"op", "example_authenticate",
+				)
 			}
 			return authx.AuthenticationResult{
 				Principal: authx.Principal{ID: "alice"},
@@ -70,6 +74,13 @@ func main() {
 		engine,
 		authhttp.WithCredentialResolverFunc(func(_ context.Context, req authhttp.RequestInfo) (any, error) {
 			raw := strings.TrimSpace(req.Header("Authorization"))
+			if !strings.HasPrefix(raw, "Bearer ") {
+				return nil, authx.NewError(
+					authx.ErrorCodeInvalidAuthenticationCredential,
+					"resolve bearer token",
+					"op", "example_resolve_credential",
+				)
+			}
 			token := strings.TrimPrefix(raw, "Bearer ")
 			token = strings.TrimSpace(token)
 			return bearerCredential{Token: token}, nil
@@ -112,6 +123,8 @@ go run .
 ```bash
 curl -i -H "Authorization: Bearer secret-token" http://127.0.0.1:8080/hello
 ```
+
+Return classified errors from credential resolvers and providers. `authx/http` preserves the error code/category through oops metadata and maps authentication, authorization, and configuration failures to stable HTTP responses.
 
 ## Related
 
