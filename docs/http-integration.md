@@ -126,6 +126,27 @@ curl -i -H "Authorization: Bearer secret-token" http://127.0.0.1:8080/hello
 
 Return classified errors from credential resolvers and providers. `authx/http` preserves the error code/category through oops metadata and maps authentication, authorization, and configuration failures to stable HTTP responses.
 
+The default middleware response is intentionally small:
+
+```json
+{"error":"unauthorized"}
+```
+
+Use the adapter-specific response hook when you want to include the full safe model:
+
+```go
+router.Use(std.Require(
+	guard,
+	std.WithErrorResponseWriter(func(w http.ResponseWriter, _ *http.Request, response authhttp.ErrorResponse) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(response.Status)
+		_ = json.NewEncoder(w).Encode(response)
+	}),
+))
+```
+
+The same model is available from Gin, Echo, and Fiber adapters through `WithErrorResponseHandler`. Existing `WithFailureHandler` callbacks remain supported for status/message-only customization.
+
 ## Related
 
 - Core `Engine` only: [Getting Started](./getting-started)

@@ -2,6 +2,7 @@ package std_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -102,6 +103,80 @@ func TestRequireDenied(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected status %d, got %d", http.StatusForbidden, rec.Code)
+	}
+}
+
+func TestRequireUsesErrorResponseWriter(t *testing.T) {
+	handler := authstd.Require(
+		newMiddlewareGuard(),
+		authstd.WithErrorResponseWriter(func(w http.ResponseWriter, _ *http.Request, response authhttp.ErrorResponse) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(response.Status)
+			if err := json.NewEncoder(w).Encode(response); err != nil {
+				t.Fatalf("encode response: %v", err)
+			}
+		}),
+	)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/orders/123", http.NoBody)
+	req = req.WithContext(authhttp.WithPathParams(authhttp.WithRoutePattern(req.Context(), "/orders/:id"), map[string]string{"id": "123"}))
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
+	}
+
+	var payload authhttp.ErrorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Error != "unauthorized" {
+		t.Fatalf("expected safe error message, got %q", payload.Error)
+	}
+	if payload.Code != authx.ErrorCodeUnauthenticated {
+		t.Fatalf("expected code %q, got %q", authx.ErrorCodeUnauthenticated, payload.Code)
+	}
+	if payload.Category != authx.ErrorCategoryAuthentication {
+		t.Fatalf("expected category %q, got %q", authx.ErrorCategoryAuthentication, payload.Category)
+	}
+	if payload.Status != http.StatusUnauthorized {
+		t.Fatalf("expected payload status %d, got %d", http.StatusUnauthorized, payload.Status)
+	}
+}
+
+func TestRequireKeepsFailureHandlerCompatibility(t *testing.T) {
+	var gotStatus int
+	var gotMessage string
+
+	handler := authstd.Require(
+		newMiddlewareGuard(),
+		authstd.WithFailureHandler(func(w http.ResponseWriter, _ *http.Request, status int, message string) {
+			gotStatus = status
+			gotMessage = message
+			w.WriteHeader(status)
+		}),
+	)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/orders/123", http.NoBody)
+	req = req.WithContext(authhttp.WithPathParams(authhttp.WithRoutePattern(req.Context(), "/orders/:id"), map[string]string{"id": "123"}))
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
+	}
+	if gotStatus != http.StatusUnauthorized {
+		t.Fatalf("expected handler status %d, got %d", http.StatusUnauthorized, gotStatus)
+	}
+	if gotMessage != "unauthorized" {
+		t.Fatalf("expected handler message %q, got %q", "unauthorized", gotMessage)
 	}
 }
 

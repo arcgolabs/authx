@@ -78,7 +78,7 @@ Full std adapter sample (`chi + net/http`): [HTTP integration](./http-integratio
 - Use `NewError` and `WrapError` to create classified errors; stable `ErrorCode*` values replace sentinel error matching.
 - `ClassifyError` returns stable `ErrorClassification` values (`authentication`, `authorization`, `configuration`, `internal`) with safe response messages.
 - Errors wrapped by authx use `oops` metadata such as `error_category`, `error_code`, and `safe_message`; HTTP request errors also include `http_status`.
-- HTTP middleware maps failures to stable status codes (`401` / `403` / `500`) through the classification helpers; see package docs for `StatusCodeFromError`.
+- HTTP middleware maps failures to stable status codes (`401` / `403` / `500`) through the classification helpers; the default body remains `{"error":"..."}`, and adapters expose `ErrorResponse` handlers when callers need `code`, `category`, and `status`.
 
 ## Integration guide
 

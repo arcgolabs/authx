@@ -17,13 +17,13 @@ import (
 type Option func(*config)
 
 type config struct {
-	failureHandler func(*fiber.Ctx, int, string) error
+	errorResponseHandler func(*fiber.Ctx, authhttp.ErrorResponse) error
 }
 
 func defaultConfig() config {
 	return config{
-		failureHandler: func(c *fiber.Ctx, status int, message string) error {
-			return c.Status(status).JSON(fiber.Map{"error": message})
+		errorResponseHandler: func(c *fiber.Ctx, response authhttp.ErrorResponse) error {
+			return c.Status(response.Status).JSON(fiber.Map{"error": response.Error})
 		},
 	}
 }
@@ -32,7 +32,18 @@ func defaultConfig() config {
 func WithFailureHandler(handler func(*fiber.Ctx, int, string) error) Option {
 	return func(cfg *config) {
 		if handler != nil {
-			cfg.failureHandler = handler
+			cfg.errorResponseHandler = func(c *fiber.Ctx, response authhttp.ErrorResponse) error {
+				return handler(c, response.Status, response.Error)
+			}
+		}
+	}
+}
+
+// WithErrorResponseHandler overrides the default auth failure handler with the full safe response model.
+func WithErrorResponseHandler(handler func(*fiber.Ctx, authhttp.ErrorResponse) error) Option {
+	return func(cfg *config) {
+		if handler != nil {
+			cfg.errorResponseHandler = handler
 		}
 	}
 }
@@ -57,7 +68,7 @@ func requireWithMode(guard *authhttp.Guard, fast bool, opts ...Option) fiber.Han
 
 	return func(c *fiber.Ctx) error {
 		if guard == nil {
-			return cfg.failureHandler(c, http.StatusInternalServerError, "internal_error")
+			return cfg.errorResponseHandler(c, authhttp.ErrorResponseFromCode(authx.ErrorCodeNilEngine))
 		}
 
 		ctx := c.UserContext()
@@ -68,10 +79,10 @@ func requireWithMode(guard *authhttp.Guard, fast bool, opts ...Option) fiber.Han
 		reqInfo := extract(c)
 		result, decision, err := guard.Require(ctx, reqInfo)
 		if err != nil {
-			return cfg.failureHandler(c, authhttp.StatusCodeFromError(err), authhttp.ErrorMessage(err))
+			return cfg.errorResponseHandler(c, authhttp.ErrorResponseFromError(err))
 		}
 		if !decision.Allowed {
-			return cfg.failureHandler(c, http.StatusForbidden, authhttp.DeniedMessage(decision))
+			return cfg.errorResponseHandler(c, authhttp.ErrorResponseFromDecision(decision))
 		}
 
 		c.SetUserContext(authx.WithPrincipal(ctx, result.Principal))

@@ -108,3 +108,35 @@ func TestGuardWrapsRequestErrorWithOopsClassification(t *testing.T) {
 	assert.Equal(t, "internal_error", ctx["safe_message"])
 	assert.Equal(t, http.StatusInternalServerError, ctx["http_status"])
 }
+
+func TestErrorResponseFromError(t *testing.T) {
+	err := authhttp.NewError(authhttp.ErrorCodePrincipalTypeMismatch, "cast principal")
+
+	got := authhttp.ErrorResponseFromError(err)
+
+	assert.Equal(t, "forbidden", got.Error)
+	assert.Equal(t, authhttp.ErrorCodePrincipalTypeMismatch, got.Code)
+	assert.Equal(t, authx.ErrorCategoryAuthorization, got.Category)
+	assert.Equal(t, http.StatusForbidden, got.Status)
+}
+
+func TestErrorResponseFromNilError(t *testing.T) {
+	got := authhttp.ErrorResponseFromError(nil)
+
+	assert.Empty(t, got.Error)
+	assert.Empty(t, got.Code)
+	assert.Empty(t, got.Category)
+	assert.Equal(t, http.StatusOK, got.Status)
+}
+
+func TestErrorResponseFromDecision(t *testing.T) {
+	got := authhttp.ErrorResponseFromDecision(authx.Decision{
+		Allowed: false,
+		Reason:  "no_permission",
+	})
+
+	assert.Equal(t, "no_permission", got.Error)
+	assert.Equal(t, authhttp.ErrorCodeAccessDenied, got.Code)
+	assert.Equal(t, authx.ErrorCategoryAuthorization, got.Category)
+	assert.Equal(t, http.StatusForbidden, got.Status)
+}

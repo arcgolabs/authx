@@ -15,13 +15,13 @@ import (
 type Option func(*config)
 
 type config struct {
-	failureHandler func(*gin.Context, int, string)
+	errorResponseHandler func(*gin.Context, authhttp.ErrorResponse)
 }
 
 func defaultConfig() config {
 	return config{
-		failureHandler: func(c *gin.Context, status int, message string) {
-			c.AbortWithStatusJSON(status, gin.H{"error": message})
+		errorResponseHandler: func(c *gin.Context, response authhttp.ErrorResponse) {
+			c.AbortWithStatusJSON(response.Status, gin.H{"error": response.Error})
 		},
 	}
 }
@@ -30,7 +30,18 @@ func defaultConfig() config {
 func WithFailureHandler(handler func(*gin.Context, int, string)) Option {
 	return func(cfg *config) {
 		if handler != nil {
-			cfg.failureHandler = handler
+			cfg.errorResponseHandler = func(c *gin.Context, response authhttp.ErrorResponse) {
+				handler(c, response.Status, response.Error)
+			}
+		}
+	}
+}
+
+// WithErrorResponseHandler overrides the default auth failure handler with the full safe response model.
+func WithErrorResponseHandler(handler func(*gin.Context, authhttp.ErrorResponse)) Option {
+	return func(cfg *config) {
+		if handler != nil {
+			cfg.errorResponseHandler = handler
 		}
 	}
 }
@@ -55,7 +66,7 @@ func requireWithMode(guard *authhttp.Guard, fast bool, opts ...Option) gin.Handl
 
 	return func(c *gin.Context) {
 		if guard == nil {
-			cfg.failureHandler(c, http.StatusInternalServerError, "internal_error")
+			cfg.errorResponseHandler(c, authhttp.ErrorResponseFromCode(authx.ErrorCodeNilEngine))
 			return
 		}
 
@@ -64,11 +75,11 @@ func requireWithMode(guard *authhttp.Guard, fast bool, opts ...Option) gin.Handl
 
 		result, decision, err := guard.Require(req.Context(), reqInfo)
 		if err != nil {
-			cfg.failureHandler(c, authhttp.StatusCodeFromError(err), authhttp.ErrorMessage(err))
+			cfg.errorResponseHandler(c, authhttp.ErrorResponseFromError(err))
 			return
 		}
 		if !decision.Allowed {
-			cfg.failureHandler(c, http.StatusForbidden, authhttp.DeniedMessage(decision))
+			cfg.errorResponseHandler(c, authhttp.ErrorResponseFromDecision(decision))
 			return
 		}
 

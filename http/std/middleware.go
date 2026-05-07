@@ -12,12 +12,12 @@ import (
 type Option func(*config)
 
 type config struct {
-	failureHandler func(http.ResponseWriter, *http.Request, int, string)
+	errorResponseWriter func(http.ResponseWriter, *http.Request, authhttp.ErrorResponse)
 }
 
 func defaultConfig() config {
 	return config{
-		failureHandler: writeFailureJSON,
+		errorResponseWriter: writeFailureJSON,
 	}
 }
 
@@ -25,20 +25,31 @@ func defaultConfig() config {
 func WithFailureHandler(handler func(http.ResponseWriter, *http.Request, int, string)) Option {
 	return func(cfg *config) {
 		if handler != nil {
-			cfg.failureHandler = handler
+			cfg.errorResponseWriter = func(w http.ResponseWriter, r *http.Request, response authhttp.ErrorResponse) {
+				handler(w, r, response.Status, response.Error)
+			}
 		}
 	}
 }
 
-func writeFailureJSON(w http.ResponseWriter, _ *http.Request, status int, message string) {
-	payload, err := json.Marshal(map[string]string{"error": message})
+// WithErrorResponseWriter overrides the default auth failure writer with the full safe response model.
+func WithErrorResponseWriter(writer func(http.ResponseWriter, *http.Request, authhttp.ErrorResponse)) Option {
+	return func(cfg *config) {
+		if writer != nil {
+			cfg.errorResponseWriter = writer
+		}
+	}
+}
+
+func writeFailureJSON(w http.ResponseWriter, _ *http.Request, response authhttp.ErrorResponse) {
+	payload, err := json.Marshal(map[string]string{"error": response.Error})
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+	w.WriteHeader(response.Status)
 	if _, err = w.Write(payload); err != nil {
 		return
 	}
@@ -62,17 +73,17 @@ func requireWithMode(guard *authhttp.Guard, fast bool, opts ...Option) func(http
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if guard == nil {
-				cfg.failureHandler(w, r, http.StatusInternalServerError, "internal_error")
+				cfg.errorResponseWriter(w, r, authhttp.ErrorResponseFromCode(authx.ErrorCodeNilEngine))
 				return
 			}
 
 			result, decision, err := guard.Require(r.Context(), extract(r))
 			if err != nil {
-				cfg.failureHandler(w, r, authhttp.StatusCodeFromError(err), authhttp.ErrorMessage(err))
+				cfg.errorResponseWriter(w, r, authhttp.ErrorResponseFromError(err))
 				return
 			}
 			if !decision.Allowed {
-				cfg.failureHandler(w, r, http.StatusForbidden, authhttp.DeniedMessage(decision))
+				cfg.errorResponseWriter(w, r, authhttp.ErrorResponseFromDecision(decision))
 				return
 			}
 

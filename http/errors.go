@@ -12,6 +12,8 @@ const (
 	ErrorCodeCredentialResolverNotConfigured = "http_credential_resolver_not_configured"
 	// ErrorCodeAuthorizationResolverNotConfigured indicates HTTP authorization resolution is missing.
 	ErrorCodeAuthorizationResolverNotConfigured = "http_authorization_resolver_not_configured"
+	// ErrorCodeAccessDenied indicates an authorization decision denied the request.
+	ErrorCodeAccessDenied = "http_access_denied"
 	// ErrorCodePrincipalNotFound indicates authentication did not produce a principal.
 	ErrorCodePrincipalNotFound = "http_principal_not_found"
 	// ErrorCodePrincipalTypeMismatch indicates principal type extraction failed.
@@ -37,7 +39,8 @@ func ClassificationForCode(code string) authx.ErrorClassification {
 		ErrorCodeAuthorizationResolverNotConfigured,
 		authx.ErrorCodeNilEngine:
 		return httpConfigurationClassification(code)
-	case ErrorCodePrincipalNotFound,
+	case ErrorCodeAccessDenied,
+		ErrorCodePrincipalNotFound,
 		ErrorCodePrincipalTypeMismatch:
 		return httpAuthorizationClassification(code)
 	default:
@@ -97,6 +100,7 @@ func isHTTPErrorCode(code string) bool {
 	switch code {
 	case ErrorCodeCredentialResolverNotConfigured,
 		ErrorCodeAuthorizationResolverNotConfigured,
+		ErrorCodeAccessDenied,
 		ErrorCodePrincipalNotFound,
 		ErrorCodePrincipalTypeMismatch:
 		return true
