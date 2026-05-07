@@ -15,6 +15,7 @@
 - **Provider selector** — `NewKeyedSelectorAuthenticationProvider` chooses same-credential providers by tenant, issuer, `kid`, or another key.
 - **`authx/http`** — `Guard` resolves credentials and authorization from `RequestInfo`, then calls the engine.
 - **`authx/jwt`** — optional JWT provider module with single-provider, `kid` rotation, and issuer-selected provider support.
+- **`authx/rbac`** — optional Casbin-backed `Authorizer` implementation for RBAC policies.
 - **HTTP middleware** — `authx/http/std` (chi + net/http), `authx/http/gin`, `authx/http/echo`, `authx/http/fiber` integrate with common stacks.
 - **Context helpers** — `WithPrincipal`, `PrincipalFromContext`, typed `PrincipalFromContextAs`.
 - **Authorization helpers** — `HasRole`, `HasPermission`, `RequireRole`, and `RequirePermission` cover common RBAC-style checks.
@@ -23,6 +24,7 @@
 
 - Core API: `github.com/arcgolabs/authx`
 - JWT provider: `github.com/arcgolabs/authx/jwt`
+- RBAC authorizer: `github.com/arcgolabs/authx/rbac`
 - HTTP guard and `RequestInfo`: `github.com/arcgolabs/authx/http`
 - std middleware (`chi + net/http`): `github.com/arcgolabs/authx/http/std`
 - Gin: `github.com/arcgolabs/authx/http/gin`
@@ -33,6 +35,7 @@
 
 - Minimal core (`Check` / `Can`): [Getting Started](./getting-started)
 - JWT provider example: [examples/jwt](https://github.com/arcgolabs/authx/tree/main/examples/jwt)
+- Casbin RBAC authorizer: [RBAC integration](./rbac-integration)
 - `Guard` + std adapter (`chi + net/http`): [HTTP integration](./http-integration)
 - Release notes (v0.3.0 refactor): [authx v0.3.0](./release-v0.3.0)
 
@@ -41,6 +44,7 @@
 ```bash
 go get github.com/arcgolabs/authx@latest
 go get github.com/arcgolabs/authx/jwt@latest
+go get github.com/arcgolabs/authx/rbac@latest
 go get github.com/arcgolabs/authx/http/std@latest
 go get github.com/arcgolabs/authx/http/gin@latest
 go get github.com/arcgolabs/authx/http/echo@latest
@@ -57,6 +61,7 @@ go get github.com/arcgolabs/authx/http/fiber@latest
 | `ChainAuthenticationProvider[C]` | Tries same-credential providers in order until one succeeds |
 | `SelectorAuthenticationProvider[C]` | Selects a same-credential provider at authentication time |
 | `Authorizer` | `Authorize(ctx, AuthorizationModel)` → `Decision` |
+| `rbac.Authorizer` | Casbin-backed optional `Authorizer` implementation |
 | `AuthenticationResult` | Carries `Principal` (`any`) plus optional `Details` |
 | `AuthorizationModel` | `Principal`, `Action`, `Resource`, optional `Context` |
 | `Decision` | `Allowed`, `Reason`, `PolicyID` |

@@ -9,4 +9,5 @@ use (
 	http/gin
 	http/std
 	jwt
+	rbac
 )
