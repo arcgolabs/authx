@@ -88,6 +88,61 @@ func TestProviderRejectsInvalidSigningMethod(t *testing.T) {
 	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
 }
 
+func TestProviderAuthenticatesTokenWithKID(t *testing.T) {
+	secrets := map[string][]byte{
+		"old": []byte("old-secret"),
+		"new": []byte("new-secret"),
+	}
+	token := signTokenWithKID(t, secrets["new"], jwtlib.SigningMethodHS256, authjwt.Claims{
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			Subject:   "u1",
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(time.Hour)),
+		},
+	}, "new")
+	provider := authjwt.NewProvider(authjwt.WithHMACSecrets(secrets))
+
+	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
+	require.NoError(t, err)
+}
+
+func TestProviderRejectsMissingKIDWithMultipleSecrets(t *testing.T) {
+	secrets := map[string][]byte{
+		"old": []byte("old-secret"),
+		"new": []byte("new-secret"),
+	}
+	token := signTokenWithKID(t, secrets["new"], jwtlib.SigningMethodHS256, authjwt.Claims{
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			Subject:   "u1",
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(time.Hour)),
+		},
+	}, "")
+	provider := authjwt.NewProvider(authjwt.WithHMACSecrets(secrets))
+
+	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
+	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+}
+
+func TestProviderRejectsUnknownKIDWithMultipleSecrets(t *testing.T) {
+	secrets := map[string][]byte{
+		"old": []byte("old-secret"),
+		"new": []byte("new-secret"),
+	}
+	token := signTokenWithKID(t, secrets["new"], jwtlib.SigningMethodHS256, authjwt.Claims{
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			Subject:   "u1",
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(time.Hour)),
+		},
+	}, "missing")
+	provider := authjwt.NewProvider(authjwt.WithHMACSecrets(secrets))
+
+	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
+	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+}
+
 func TestProviderUsesClaimsMapper(t *testing.T) {
 	secret := []byte("secret")
 	token := signToken(t, secret, jwtlib.SigningMethodHS256, authjwt.Claims{
@@ -133,6 +188,24 @@ func signToken(t *testing.T, secret []byte, method jwtlib.SigningMethod, claims 
 	t.Helper()
 
 	token := jwtlib.NewWithClaims(method, claims)
+	signed, err := token.SignedString(secret)
+	require.NoError(t, err)
+	return signed
+}
+
+func signTokenWithKID(
+	t *testing.T,
+	secret []byte,
+	method jwtlib.SigningMethod,
+	claims authjwt.Claims,
+	kid string,
+) string {
+	t.Helper()
+
+	token := jwtlib.NewWithClaims(method, claims)
+	if kid != "" {
+		token.Header["kid"] = kid
+	}
 	signed, err := token.SignedString(secret)
 	require.NoError(t, err)
 	return signed

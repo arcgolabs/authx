@@ -55,23 +55,94 @@ func WithKeyfunc(keyfunc jwt.Keyfunc) Option {
 	}
 }
 
-// WithHMACSecret configures HMAC verification. It defaults to HS256 when no method is provided.
+// WithHMACSecret configures HMAC verification with a single static secret.
+// It defaults to HS256 when no method is provided.
+//
+// For multi-key use cases (for example rotation with kid), use WithHMACSecrets.
 func WithHMACSecret(secret []byte, methods ...string) Option {
+	if len(secret) == 0 {
+		return func(provider *Provider) {}
+	}
+	secretCopy := copySecret(secret)
+	return WithHMACSecrets(map[string][]byte{"": secretCopy}, methods...)
+}
+
+// WithHMACSecrets configures HMAC verification with one or more secrets.
+//
+// If a token has a kid header, that kid must exist in keys.
+// If no kid is set, behavior is:
+//   - if exactly one secret is configured, use it as fallback
+//   - if exactly one default key is configured with kid "", use it
+//   - otherwise validation fails.
+func WithHMACSecrets(keys map[string][]byte, methods ...string) Option {
 	return func(provider *Provider) {
-		if provider == nil {
+		if provider == nil || len(keys) == 0 {
 			return
 		}
 		provider.validMethods = collectionlist.NewList(methods...)
 		if provider.validMethods.IsEmpty() {
 			provider.validMethods.Add(jwt.SigningMethodHS256.Alg())
 		}
+
+		configuredKeys := make(map[string][]byte, len(keys))
+		for kid, secret := range keys {
+			configuredKeys[kid] = copySecret(secret)
+		}
+
 		provider.keyfunc = func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("validate signing method: %w", ErrInvalidToken)
 			}
+			if configuredKeys == nil {
+				return nil, fmt.Errorf("resolve signing key: %w", ErrInvalidToken)
+			}
+
+			kid := parseStringHeader(token.Header, "kid")
+			if kid == "" {
+				if defaultSecret, ok := configuredKeys[""]; ok {
+					return defaultSecret, nil
+				}
+				if len(configuredKeys) == 1 {
+					for _, secret := range configuredKeys {
+						return secret, nil
+					}
+				}
+				return nil, fmt.Errorf("resolve signing key by kid: %w", ErrInvalidToken)
+			}
+
+			secret, ok := configuredKeys[kid]
+			if !ok {
+				return nil, fmt.Errorf("resolve signing key by kid: %w", ErrInvalidToken)
+			}
 			return secret, nil
 		}
 	}
+}
+
+// parseStringHeader returns token header value only when it is a non-empty string.
+func parseStringHeader(header map[string]any, key string) string {
+	if header == nil {
+		return ""
+	}
+	value, ok := header[key]
+	if !ok {
+		return ""
+	}
+	strValue, ok := value.(string)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(strValue)
+}
+
+// copySecret returns a defensive copy of the provided secret.
+func copySecret(secret []byte) []byte {
+	if len(secret) == 0 {
+		return nil
+	}
+	secretCopy := make([]byte, len(secret))
+	copy(secretCopy, secret)
+	return secretCopy
 }
 
 // WithValidMethods constrains acceptable JWT signing algorithms.
