@@ -11,8 +11,10 @@
 
 - **`Engine`** — orchestrates `Check` / `Can` with optional hooks.
 - **`ProviderManager`** — routes `Authenticate` to typed `AuthenticationProvider[C]` by credential dynamic type.
+- **Provider chain** — `NewChainAuthenticationProvider` tries same-credential providers in order for fallback auth flows.
+- **Provider selector** — `NewKeyedSelectorAuthenticationProvider` chooses same-credential providers by tenant, issuer, `kid`, or another key.
 - **`authx/http`** — `Guard` resolves credentials and authorization from `RequestInfo`, then calls the engine.
-- **`authx/jwt`** — optional JWT provider module, kept outside the core module because it has JWT-specific dependencies.
+- **`authx/jwt`** — optional JWT provider module with single-provider, `kid` rotation, and issuer-selected provider support.
 - **HTTP middleware** — `authx/http/std` (chi + net/http), `authx/http/gin`, `authx/http/echo`, `authx/http/fiber` integrate with common stacks.
 - **Context helpers** — `WithPrincipal`, `PrincipalFromContext`, typed `PrincipalFromContextAs`.
 - **Authorization helpers** — `HasRole`, `HasPermission`, `RequireRole`, and `RequirePermission` cover common RBAC-style checks.
@@ -52,6 +54,8 @@ go get github.com/arcgolabs/authx/http/fiber@latest
 | `Engine` | Runs `Check` and `Can`, optional `Hook` |
 | `ProviderManager` | Holds multiple typed `AuthenticationProvider` |
 | `AuthenticationProvider[C]` | `Authenticate(ctx, C)` → `AuthenticationResult` |
+| `ChainAuthenticationProvider[C]` | Tries same-credential providers in order until one succeeds |
+| `SelectorAuthenticationProvider[C]` | Selects a same-credential provider at authentication time |
 | `Authorizer` | `Authorize(ctx, AuthorizationModel)` → `Decision` |
 | `AuthenticationResult` | Carries `Principal` (`any`) plus optional `Details` |
 | `AuthorizationModel` | `Principal`, `Action`, `Resource`, optional `Context` |
@@ -74,6 +78,7 @@ Full std adapter sample (`chi + net/http`): [HTTP integration](./http-integratio
 ## Error and behavior model
 
 - `Check` returns `AuthenticationResult` and error; invalid credentials should surface as explicit errors (not silent success).
+- Provider chains continue on authentication failures and stop on malformed credential, configuration, authorization, or internal errors.
 - `Can` returns `Decision` and error; policy failures should not be silently treated as deny without an observable error path where appropriate.
 - Use `NewError` and `WrapError` to create classified errors; stable `ErrorCode*` values replace sentinel error matching.
 - `ClassifyError` returns stable `ErrorClassification` values (`authentication`, `authorization`, `configuration`, `internal`) with safe response messages.

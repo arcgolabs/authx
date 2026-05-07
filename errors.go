@@ -27,6 +27,8 @@ const (
 	ErrorCodeInvalidAuthorizationModel = "invalid_authorization_model"
 	// ErrorCodeAuthenticationProviderNotFound indicates no provider matches the credential type.
 	ErrorCodeAuthenticationProviderNotFound = "authentication_provider_not_found"
+	// ErrorCodeAuthenticationProviderNotConfigured indicates a provider has no runtime implementation.
+	ErrorCodeAuthenticationProviderNotConfigured = "authentication_provider_not_configured"
 	// ErrorCodeAuthenticationManagerNotConfigured indicates the engine has no auth manager.
 	ErrorCodeAuthenticationManagerNotConfigured = "authentication_manager_not_configured"
 	// ErrorCodeAuthenticationProviderRegistrationUnsupported indicates provider registration is unsupported.
@@ -100,6 +102,7 @@ func ClassificationForCode(code string) ErrorClassification {
 			SafeMessage: "",
 		}
 	case ErrorCodeAuthenticationManagerNotConfigured,
+		ErrorCodeAuthenticationProviderNotConfigured,
 		ErrorCodeAuthenticationProviderRegistrationUnsupported,
 		ErrorCodeAuthorizerNotConfigured,
 		ErrorCodeNilEngine:

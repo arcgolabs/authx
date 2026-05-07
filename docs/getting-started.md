@@ -99,6 +99,44 @@ go run .
 
 Provider and resolver failures should return classified errors, usually through `authx.NewError` or `authx.WrapError`. HTTP adapters use `ClassifyError` to map those errors to safe response messages and status codes.
 
+For fallback authentication, use `authx.NewChainAuthenticationProviderFunc` with providers for the same credential type:
+
+```go
+provider := authx.NewChainAuthenticationProviderFunc[tokenCredential](
+	cacheAuthenticate,
+	databaseAuthenticate,
+)
+
+manager := authx.NewProviderManager(provider)
+```
+
+The chain continues on authentication failures and returns the first successful result. Malformed credential, configuration, authorization, and internal errors stop the chain immediately.
+
+For tenant, issuer, or key based routing, use `authx.NewKeyedSelectorAuthenticationProvider`:
+
+```go
+provider := authx.NewKeyedSelectorAuthenticationProvider(
+	func(_ context.Context, credential tokenCredential) (string, error) {
+		return credential.TenantID, nil
+	},
+	map[string]authx.TypedAuthenticationProvider[tokenCredential]{
+		"tenant-a": tenantAProvider,
+		"tenant-b": tenantBProvider,
+	},
+)
+```
+
+The JWT module includes the same pattern for multi-issuer tokens:
+
+```go
+provider := authjwt.NewIssuerAuthenticationProvider(
+	map[string]authx.TypedAuthenticationProvider[authjwt.TokenCredential]{
+		"issuer-a": authjwt.NewProvider(authjwt.WithIssuer("issuer-a"), authjwt.WithHMACSecret(secretA)),
+		"issuer-b": authjwt.NewProvider(authjwt.WithIssuer("issuer-b"), authjwt.WithHMACSecret(secretB)),
+	},
+)
+```
+
 ## Next
 
 - HTTP `Guard` and the std adapter (`chi + net/http`): [HTTP integration](./http-integration)

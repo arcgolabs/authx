@@ -14,6 +14,8 @@ const (
 	ErrorCodeInvalidToken = "jwt_invalid_token"
 	// ErrorCodeSubjectRequired indicates that default principal mapping could not find a subject.
 	ErrorCodeSubjectRequired = "jwt_subject_required"
+	// ErrorCodeIssuerRequired indicates that issuer-based provider selection could not find an issuer.
+	ErrorCodeIssuerRequired = "jwt_issuer_required"
 )
 
 // ClassifyError returns the JWT-aware classification for oops-classified errors.
@@ -39,7 +41,8 @@ func ClassificationForCode(code string) authx.ErrorClassification {
 		}
 	case ErrorCodeTokenEmpty,
 		ErrorCodeInvalidToken,
-		ErrorCodeSubjectRequired:
+		ErrorCodeSubjectRequired,
+		ErrorCodeIssuerRequired:
 		return authx.ErrorClassification{
 			Category:    authx.ErrorCategoryAuthentication,
 			Code:        code,
@@ -55,7 +58,8 @@ func isJWTErrorCode(code string) bool {
 	case ErrorCodeTokenEmpty,
 		ErrorCodeKeyfuncNotConfigured,
 		ErrorCodeInvalidToken,
-		ErrorCodeSubjectRequired:
+		ErrorCodeSubjectRequired,
+		ErrorCodeIssuerRequired:
 		return true
 	default:
 		return false
