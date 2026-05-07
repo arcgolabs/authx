@@ -86,7 +86,7 @@ func newAuthorizer() authx.Authorizer {
 			if !ok {
 				return authx.Decision{Allowed: false, Reason: "invalid_principal"}, nil
 			}
-			if HasRole(principal.Roles, "admin") {
+			if authx.HasRole(principal, "admin") {
 				return authx.Decision{Allowed: true}, nil
 			}
 			return authx.Decision{Allowed: false, Reason: "admin_required"}, nil

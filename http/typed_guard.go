@@ -211,15 +211,21 @@ func (guard *TypedGuard[C, P]) checkTyped(
 
 	principal, principalErr := principalFromResult[P](result)
 	if principalErr != nil {
+		classification := ClassifyError(principalErr)
+		fields := []any{
+			"op", "extract_principal",
+			"method", req.Method,
+			"path", req.Path,
+			"route_pattern", req.RoutePattern,
+			"expected_principal_type", reflect.TypeFor[P](),
+			"actual_principal_type", reflect.TypeOf(result.Principal),
+		}
+		fields = append(fields, classification.OopsFields()...)
+		fields = append(fields, "http_status", StatusCodeFromClassification(classification))
+
 		return authx.AuthenticationResult{}, zeroPrincipal, oops.In("authx/http").
-			With(
-				"op", "extract_principal",
-				"method", req.Method,
-				"path", req.Path,
-				"route_pattern", req.RoutePattern,
-				"expected_principal_type", reflect.TypeFor[P](),
-				"actual_principal_type", reflect.TypeOf(result.Principal),
-			).
+			Code(classification.Code).
+			With(fields...).
 			Wrapf(principalErr, "extract principal from authentication result")
 	}
 

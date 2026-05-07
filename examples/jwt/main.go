@@ -109,7 +109,7 @@ func newJWTAuthorizer() authx.Authorizer {
 			return authx.Decision{Allowed: true}, nil
 		case "delete":
 			principal, ok := input.Principal.(authx.Principal)
-			if !ok || !shared.HasRole(principal.Roles, "admin") {
+			if !ok || !authx.HasRole(principal, "admin") {
 				return authx.Decision{Allowed: false, Reason: "admin_required"}, nil
 			}
 			return authx.Decision{Allowed: true}, nil

@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	collectionmapping "github.com/arcgolabs/collectionx/mapping"
-	"github.com/samber/oops"
 )
 
 // ProviderManager routes authentication credential to provider by credential concrete type.
@@ -45,35 +44,45 @@ func (manager *ProviderManager) Authenticate(
 	credential any,
 ) (AuthenticationResult, error) {
 	if credential == nil {
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "authenticate", "stage", "validate_credential").
-			Wrapf(ErrInvalidAuthenticationCredential, "validate authentication credential")
+		return AuthenticationResult{}, wrapError(
+			ErrInvalidAuthenticationCredential,
+			"validate authentication credential",
+			"op", "authenticate",
+			"stage", "validate_credential",
+		)
 	}
 	if manager == nil {
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "authenticate", "stage", "validate_manager").
-			Wrapf(ErrAuthenticationManagerNotConfigured, "validate authentication manager")
+		return AuthenticationResult{}, wrapError(
+			ErrAuthenticationManagerNotConfigured,
+			"validate authentication manager",
+			"op", "authenticate",
+			"stage", "validate_manager",
+		)
 	}
 
 	credentialType := reflect.TypeOf(credential)
 	provider, ok := manager.providers.Get(credentialType)
 	providerCount := manager.providers.Len()
 	if !ok {
-		return AuthenticationResult{}, oops.In("authx").
-			With(
-				"op", "authenticate",
-				"stage", "resolve_provider",
-				"credential_type", credentialType,
-				"provider_count", providerCount,
-			).
-			Wrapf(ErrAuthenticationProviderNotFound, "resolve authentication provider")
+		return AuthenticationResult{}, wrapError(
+			ErrAuthenticationProviderNotFound,
+			"resolve authentication provider",
+			"op", "authenticate",
+			"stage", "resolve_provider",
+			"credential_type", credentialType,
+			"provider_count", providerCount,
+		)
 	}
 
 	result, err := provider.AuthenticateAny(ctx, credential)
 	if err != nil {
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "authenticate", "stage", "provider_authenticate", "credential_type", credentialType).
-			Wrapf(errors.Join(ErrUnauthenticated, err), "authenticate credential")
+		return AuthenticationResult{}, wrapError(
+			errors.Join(ErrUnauthenticated, err),
+			"authenticate credential",
+			"op", "authenticate",
+			"stage", "provider_authenticate",
+			"credential_type", credentialType,
+		)
 	}
 	return result, nil
 }

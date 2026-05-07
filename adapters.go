@@ -3,8 +3,6 @@ package authx
 import (
 	"context"
 	"reflect"
-
-	"github.com/samber/oops"
 )
 
 // TypedAuthenticationProvider keeps credential strongly typed while exposing a non-generic provider surface.
@@ -21,9 +19,13 @@ func (fn TypedAuthenticationProviderFunc[C]) Authenticate(
 	credential C,
 ) (AuthenticationResult, error) {
 	if fn == nil {
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "authenticate", "stage", "validate_provider_func", "credential_type", reflect.TypeFor[C]()).
-			Wrapf(ErrUnauthenticated, "authenticate provider function is nil")
+		return AuthenticationResult{}, wrapError(
+			ErrUnauthenticated,
+			"authenticate provider function is nil",
+			"op", "authenticate",
+			"stage", "validate_provider_func",
+			"credential_type", reflect.TypeFor[C](),
+		)
 	}
 	return fn(ctx, credential)
 }
@@ -61,26 +63,33 @@ func (adapter *typedProviderAdapter[C]) AuthenticateAny(
 ) (AuthenticationResult, error) {
 	credentialType := adapter.CredentialType()
 	if adapter == nil || adapter.provider == nil {
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "authenticate", "stage", "validate_provider", "credential_type", credentialType).
-			Wrapf(ErrUnauthenticated, "authentication provider is nil")
+		return AuthenticationResult{}, wrapError(
+			ErrUnauthenticated,
+			"authentication provider is nil",
+			"op", "authenticate",
+			"stage", "validate_provider",
+			"credential_type", credentialType,
+		)
 	}
 	typedCredential, ok := credential.(C)
 	if !ok {
-		return AuthenticationResult{}, oops.In("authx").
-			With(
-				"op", "authenticate",
-				"stage", "cast_credential",
-				"credential_type", credentialType,
-				"actual_credential_type", reflect.TypeOf(credential),
-			).
-			Wrapf(ErrInvalidAuthenticationCredential, "cast authentication credential")
+		return AuthenticationResult{}, wrapError(
+			ErrInvalidAuthenticationCredential,
+			"cast authentication credential",
+			"op", "authenticate",
+			"stage", "cast_credential",
+			"credential_type", credentialType,
+			"actual_credential_type", reflect.TypeOf(credential),
+		)
 	}
 	result, err := adapter.provider.Authenticate(ctx, typedCredential)
 	if err != nil {
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "authenticate", "credential_type", credentialType.String()).
-			Wrapf(err, "authenticate credential")
+		return AuthenticationResult{}, wrapError(
+			err,
+			"authenticate credential",
+			"op", "authenticate",
+			"credential_type", credentialType.String(),
+		)
 	}
 	return result, nil
 }
@@ -94,9 +103,13 @@ func (fn AuthenticationManagerFunc) Authenticate(
 	credential any,
 ) (AuthenticationResult, error) {
 	if fn == nil {
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "authenticate", "stage", "validate_manager_func", "credential_type", reflect.TypeOf(credential)).
-			Wrapf(ErrAuthenticationManagerNotConfigured, "authentication manager function is nil")
+		return AuthenticationResult{}, wrapError(
+			ErrAuthenticationManagerNotConfigured,
+			"authentication manager function is nil",
+			"op", "authenticate",
+			"stage", "validate_manager_func",
+			"credential_type", reflect.TypeOf(credential),
+		)
 	}
 	return fn(ctx, credential)
 }
@@ -107,9 +120,14 @@ type AuthorizerFunc func(ctx context.Context, input AuthorizationModel) (Decisio
 // Authorize calls fn or returns ErrAuthorizerNotConfigured when fn is nil.
 func (fn AuthorizerFunc) Authorize(ctx context.Context, input AuthorizationModel) (Decision, error) {
 	if fn == nil {
-		return Decision{}, oops.In("authx").
-			With("op", "authorize", "stage", "validate_authorizer_func", "action", input.Action, "resource", input.Resource).
-			Wrapf(ErrAuthorizerNotConfigured, "authorizer function is nil")
+		return Decision{}, wrapError(
+			ErrAuthorizerNotConfigured,
+			"authorizer function is nil",
+			"op", "authorize",
+			"stage", "validate_authorizer_func",
+			"action", input.Action,
+			"resource", input.Resource,
+		)
 	}
 	return fn(ctx, input)
 }

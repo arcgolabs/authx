@@ -15,8 +15,6 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.2.1 // indirect
-	github.com/arcgolabs/collectionx v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/internal v0.6.0 // indirect
 	github.com/arcgolabs/collectionx/interval v0.7.0 // indirect
 	github.com/arcgolabs/collectionx/prefix v0.7.0 // indirect
 	github.com/arcgolabs/collectionx/set v0.7.0 // indirect

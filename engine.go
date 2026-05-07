@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/arcgolabs/pkg/option"
-	"github.com/samber/oops"
 )
 
 // Engine separates authentication (Check) and authorization (Can).
@@ -43,9 +42,12 @@ func (engine *Engine) SetAuthenticationManager(manager AuthenticationManager) {
 // RegisterProvider appends providers to the engine's provider-backed authentication manager.
 func (engine *Engine) RegisterProvider(providers ...AuthenticationProvider) error {
 	if engine == nil {
-		return oops.In("authx").
-			With("op", "register_provider", "stage", "validate_engine").
-			Wrapf(ErrNilEngine, "validate engine")
+		return wrapError(
+			ErrNilEngine,
+			"validate engine",
+			"op", "register_provider",
+			"stage", "validate_engine",
+		)
 	}
 	if len(providers) == 0 {
 		return nil
@@ -72,9 +74,13 @@ func (engine *Engine) resolveProviderRegistrar() (ProviderRegistrar, error) {
 
 	registrar, ok := engine.authn.(ProviderRegistrar)
 	if !ok {
-		return nil, oops.In("authx").
-			With("op", "register_provider", "stage", "resolve_registrar", "manager_type", reflect.TypeOf(engine.authn)).
-			Wrapf(ErrAuthenticationProviderRegistrationUnsupported, "resolve provider registrar")
+		return nil, wrapError(
+			ErrAuthenticationProviderRegistrationUnsupported,
+			"resolve provider registrar",
+			"op", "register_provider",
+			"stage", "resolve_registrar",
+			"manager_type", reflect.TypeOf(engine.authn),
+		)
 	}
 	return registrar, nil
 }
@@ -118,9 +124,12 @@ func (engine *Engine) RegisterHook(hooks ...Hook) {
 // Check authenticates credential and returns principal.
 func (engine *Engine) Check(ctx context.Context, credential any) (AuthenticationResult, error) {
 	if credential == nil {
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "check", "stage", "validate_credential").
-			Wrapf(ErrInvalidAuthenticationCredential, "validate authentication credential")
+		return AuthenticationResult{}, wrapError(
+			ErrInvalidAuthenticationCredential,
+			"validate authentication credential",
+			"op", "check",
+			"stage", "validate_credential",
+		)
 	}
 	credentialType := reflect.TypeOf(credential)
 	engine.logDebug("authx check started", "credential_type", credentialType)
@@ -128,9 +137,13 @@ func (engine *Engine) Check(ctx context.Context, credential any) (Authentication
 	authn, hooks := engine.snapshotCheckDependencies()
 	if authn == nil {
 		engine.logError("authx check failed", "credential_type", credentialType, "error", ErrAuthenticationManagerNotConfigured)
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "check", "stage", "resolve_manager", "credential_type", credentialType).
-			Wrapf(ErrAuthenticationManagerNotConfigured, "resolve authentication manager")
+		return AuthenticationResult{}, wrapError(
+			ErrAuthenticationManagerNotConfigured,
+			"resolve authentication manager",
+			"op", "check",
+			"stage", "resolve_manager",
+			"credential_type", credentialType,
+		)
 	}
 
 	if beforeCheckErr := runBeforeCheckHooks(ctx, hooks, credential); beforeCheckErr != nil {
@@ -142,9 +155,12 @@ func (engine *Engine) Check(ctx context.Context, credential any) (Authentication
 	runAfterCheckHooks(ctx, hooks, credential, result, err)
 	if err != nil {
 		engine.logError("authx check failed", "credential_type", credentialType, "error", err)
-		return AuthenticationResult{}, oops.In("authx").
-			With("op", "check", "credential_type", credentialType).
-			Wrapf(err, "authenticate credential")
+		return AuthenticationResult{}, wrapError(
+			err,
+			"authenticate credential",
+			"op", "check",
+			"credential_type", credentialType,
+		)
 	}
 	engine.logDebug("authx check completed", "credential_type", credentialType, "principal_type", reflect.TypeOf(result.Principal))
 	return result, nil
@@ -153,24 +169,29 @@ func (engine *Engine) Check(ctx context.Context, credential any) (Authentication
 // Can authorizes principal access to action/resource.
 func (engine *Engine) Can(ctx context.Context, input AuthorizationModel) (Decision, error) {
 	if err := validateAuthorizationModel(input); err != nil {
-		return Decision{}, oops.In("authx").
-			With(
-				"op", "authorize",
-				"stage", "validate_input",
-				"action", input.Action,
-				"resource", input.Resource,
-				"principal_type", reflect.TypeOf(input.Principal),
-			).
-			Wrapf(err, "validate authorization model")
+		return Decision{}, wrapError(
+			err,
+			"validate authorization model",
+			"op", "authorize",
+			"stage", "validate_input",
+			"action", input.Action,
+			"resource", input.Resource,
+			"principal_type", reflect.TypeOf(input.Principal),
+		)
 	}
 	engine.logDebug("authx can started", "action", input.Action, "resource", input.Resource)
 
 	authorizer, hooks := engine.snapshotCanDependencies()
 	if authorizer == nil {
 		engine.logError("authx can failed", "action", input.Action, "resource", input.Resource, "error", ErrAuthorizerNotConfigured)
-		return Decision{}, oops.In("authx").
-			With("op", "authorize", "stage", "resolve_authorizer", "action", input.Action, "resource", input.Resource).
-			Wrapf(ErrAuthorizerNotConfigured, "resolve authorizer")
+		return Decision{}, wrapError(
+			ErrAuthorizerNotConfigured,
+			"resolve authorizer",
+			"op", "authorize",
+			"stage", "resolve_authorizer",
+			"action", input.Action,
+			"resource", input.Resource,
+		)
 	}
 
 	if beforeCanErr := runBeforeCanHooks(ctx, hooks, input); beforeCanErr != nil {
@@ -182,9 +203,13 @@ func (engine *Engine) Can(ctx context.Context, input AuthorizationModel) (Decisi
 	runAfterCanHooks(ctx, hooks, input, decision, err)
 	if err != nil {
 		engine.logError("authx can failed", "action", input.Action, "resource", input.Resource, "error", err)
-		return Decision{}, oops.In("authx").
-			With("op", "authorize", "action", input.Action, "resource", input.Resource).
-			Wrapf(err, "authorize request")
+		return Decision{}, wrapError(
+			err,
+			"authorize request",
+			"op", "authorize",
+			"action", input.Action,
+			"resource", input.Resource,
+		)
 	}
 	engine.logDebug("authx can completed", "action", input.Action, "resource", input.Resource, "allowed", decision.Allowed, "policy_id", decision.PolicyID)
 	return decision, nil
@@ -220,14 +245,14 @@ func runBeforeCheckHooks(ctx context.Context, hooks []Hook, credential any) erro
 			continue
 		}
 		if err := hook.BeforeCheck(ctx, credential); err != nil {
-			return oops.In("authx").
-				With(
-					"op", "check",
-					"stage", "before_hook",
-					"credential_type", reflect.TypeOf(credential),
-					"hook_type", reflect.TypeOf(hook),
-				).
-				Wrapf(err, "before check hook")
+			return wrapError(
+				err,
+				"before check hook",
+				"op", "check",
+				"stage", "before_hook",
+				"credential_type", reflect.TypeOf(credential),
+				"hook_type", reflect.TypeOf(hook),
+			)
 		}
 	}
 	return nil
@@ -247,15 +272,15 @@ func runBeforeCanHooks(ctx context.Context, hooks []Hook, input AuthorizationMod
 			continue
 		}
 		if err := hook.BeforeCan(ctx, input); err != nil {
-			return oops.In("authx").
-				With(
-					"op", "authorize",
-					"stage", "before_hook",
-					"action", input.Action,
-					"resource", input.Resource,
-					"hook_type", reflect.TypeOf(hook),
-				).
-				Wrapf(err, "before authorization hook")
+			return wrapError(
+				err,
+				"before authorization hook",
+				"op", "authorize",
+				"stage", "before_hook",
+				"action", input.Action,
+				"resource", input.Resource,
+				"hook_type", reflect.TypeOf(hook),
+			)
 		}
 	}
 	return nil
@@ -271,14 +296,23 @@ func runAfterCanHooks(ctx context.Context, hooks []Hook, input AuthorizationMode
 
 func validateAuthorizationModel(input AuthorizationModel) error {
 	if input.Action == "" || input.Resource == "" {
-		return oops.In("authx").
-			With("op", "validate_authorization_model", "action", input.Action, "resource", input.Resource, "principal_type", reflect.TypeOf(input.Principal)).
-			Wrapf(ErrInvalidAuthorizationModel, "authorization action and resource are required")
+		return wrapError(
+			ErrInvalidAuthorizationModel,
+			"authorization action and resource are required",
+			"op", "validate_authorization_model",
+			"action", input.Action,
+			"resource", input.Resource,
+			"principal_type", reflect.TypeOf(input.Principal),
+		)
 	}
 	if input.Principal == nil {
-		return oops.In("authx").
-			With("op", "validate_authorization_model", "action", input.Action, "resource", input.Resource).
-			Wrapf(ErrInvalidAuthorizationModel, "authorization principal is required")
+		return wrapError(
+			ErrInvalidAuthorizationModel,
+			"authorization principal is required",
+			"op", "validate_authorization_model",
+			"action", input.Action,
+			"resource", input.Resource,
+		)
 	}
 	return nil
 }

@@ -15,6 +15,7 @@
 - **`authx/jwt`** — optional JWT provider module, kept outside the core module because it has JWT-specific dependencies.
 - **HTTP middleware** — `authx/http/std` (chi + net/http), `authx/http/gin`, `authx/http/echo`, `authx/http/fiber` integrate with common stacks.
 - **Context helpers** — `WithPrincipal`, `PrincipalFromContext`, typed `PrincipalFromContextAs`.
+- **Authorization helpers** — `HasRole`, `HasPermission`, `RequireRole`, and `RequirePermission` cover common RBAC-style checks.
 
 ## Package layout
 
@@ -55,6 +56,7 @@ go get github.com/arcgolabs/authx/http/fiber@latest
 | `AuthenticationResult` | Carries `Principal` (`any`) plus optional `Details` |
 | `AuthorizationModel` | `Principal`, `Action`, `Resource`, optional `Context` |
 | `Decision` | `Allowed`, `Reason`, `PolicyID` |
+| `RequireRole` / `RequirePermission` | Small built-in `Authorizer` helpers for common RBAC checks |
 
 Runnable, import-complete examples are on [Getting Started](./getting-started).
 
@@ -73,7 +75,9 @@ Full std adapter sample (`chi + net/http`): [HTTP integration](./http-integratio
 
 - `Check` returns `AuthenticationResult` and error; invalid credentials should surface as explicit errors (not silent success).
 - `Can` returns `Decision` and error; policy failures should not be silently treated as deny without an observable error path where appropriate.
-- HTTP middleware maps failures to stable status codes (`401` / `403`) via `authx/http` helpers; see package docs for `StatusCodeFromError`.
+- `ClassifyError` returns stable `ErrorClassification` values (`authentication`, `authorization`, `configuration`, `internal`) with safe response messages.
+- Errors wrapped by authx use `oops` metadata such as `error_category`, `error_code`, and `safe_message`; HTTP request errors also include `http_status`.
+- HTTP middleware maps failures to stable status codes (`401` / `403` / `500`) through the classification helpers; see package docs for `StatusCodeFromError`.
 
 ## Integration guide
 

@@ -155,7 +155,18 @@ func (guard *Guard) Require(
 }
 
 func wrapRequestError(op string, req RequestInfo, err error, message string) error {
+	classification := ClassifyError(err)
+	fields := []any{
+		"op", op,
+		"method", req.Method,
+		"path", req.Path,
+		"route_pattern", req.RoutePattern,
+	}
+	fields = append(fields, classification.OopsFields()...)
+	fields = append(fields, "http_status", StatusCodeFromClassification(classification))
+
 	return oops.In("authx/http").
-		With("op", op, "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
+		Code(classification.Code).
+		With(fields...).
 		Wrapf(err, "%s", message)
 }

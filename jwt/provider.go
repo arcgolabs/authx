@@ -9,6 +9,7 @@ import (
 	"github.com/arcgolabs/authx"
 	collectionlist "github.com/arcgolabs/collectionx/list"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/samber/oops"
 )
 
 // ClaimsMapper maps validated JWT claims into an authx authentication result.
@@ -146,9 +147,17 @@ func (provider *Provider) jwtParserOptions() []jwt.ParserOption {
 }
 
 func invalidCredentialError(err error, message string) error {
-	return fmt.Errorf("authx/jwt: %s: %w", message, errors.Join(authx.ErrInvalidAuthenticationCredential, err))
+	return classifiedError(errors.Join(authx.ErrInvalidAuthenticationCredential, err), message)
 }
 
 func unauthenticatedError(err error, message string) error {
-	return fmt.Errorf("authx/jwt: %s: %w", message, errors.Join(authx.ErrUnauthenticated, err))
+	return classifiedError(errors.Join(authx.ErrUnauthenticated, err), message)
+}
+
+func classifiedError(err error, message string) error {
+	classification := authx.ClassifyError(err)
+	return oops.In("authx/jwt").
+		Code(classification.Code).
+		With(classification.OopsFields()...).
+		Wrapf(err, "authx/jwt: %s", message)
 }
