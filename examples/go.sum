@@ -30,6 +30,8 @@ github.com/arcgolabs/collectionx/tree v0.7.0 h1:nTiTr5LAy7HyfTJ/wXWiWKtUU2u0n23a
 github.com/arcgolabs/collectionx/tree v0.7.0/go.mod h1:iW9OQ+LPZ20sLpdGpxR4otICRjnMD8uyrAWBqhv8XE4=
 github.com/arcgolabs/logx v0.1.1 h1:CZm6xmo2OvHhn0iWvnsXBscCbiHhFtd3JmSo2IU6ACI=
 github.com/arcgolabs/logx v0.1.1/go.mod h1:VcJ+o3ILxuQLle6++931RwU++ZNuUxXRvoU+9SPfmZ0=
+github.com/arcgolabs/logx v0.1.2 h1:+VJF7T/mfI482CpbIQ4tSBXbxTVcOkmBaTOj+DaCom0=
+github.com/arcgolabs/logx v0.1.2/go.mod h1:GgVdUPfBZ3Hao7h5ahdGwqHDXY9q5mhMmnS7t3NNqzU=
 github.com/arcgolabs/pkg/option v0.0.3 h1:SS7WDMUAr7XW2/sOZkaqDrIUrygJK8u1gdPs9A4K5+A=
 github.com/arcgolabs/pkg/option v0.0.3/go.mod h1:91/Ov3tYLKEZ+ytBT30ay4l6JNTRjzk/HRRfDTElhyA=
 github.com/brianvoe/gofakeit/v7 v7.14.1 h1:a7fe3fonbj0cW3wgl5VwIKfZtiH9C3cLnwcIXWT7sow=

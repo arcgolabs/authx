@@ -25,6 +25,7 @@ type Provider struct {
 	claimsMapper  ClaimsMapper
 	parserOptions *collectionlist.List[jwt.ParserOption]
 	validMethods  *collectionlist.List[string]
+	requireIAT    bool
 }
 
 // NewProvider creates a JWT authentication provider.
@@ -174,12 +175,54 @@ func WithAudience(audiences ...string) Option {
 	}
 }
 
+// WithAllAudiences constrains the `aud` claim to include all specified audiences.
+func WithAllAudiences(audiences ...string) Option {
+	return func(provider *Provider) {
+		if provider == nil || len(audiences) == 0 {
+			return
+		}
+		provider.parserOptions.Add(jwt.WithAllAudiences(audiences...))
+	}
+}
+
 // WithRequiredSubject constrains the `sub` claim to a specific expected value.
 func WithRequiredSubject(subject string) Option {
 	return func(provider *Provider) {
 		if provider != nil && subject != "" {
 			provider.parserOptions.Add(jwt.WithSubject(subject))
 		}
+	}
+}
+
+// WithRequiredIssuedAt requires the token to include an `iat` claim and validates
+// issued-at semantics when present.
+func WithRequiredIssuedAt() Option {
+	return func(provider *Provider) {
+		if provider == nil {
+			return
+		}
+		provider.parserOptions.Add(jwt.WithIssuedAt())
+		provider.requireIAT = true
+	}
+}
+
+// WithRequiredExpiration requires the token to include an `exp` claim.
+func WithRequiredExpiration() Option {
+	return func(provider *Provider) {
+		if provider == nil {
+			return
+		}
+		provider.parserOptions.Add(jwt.WithExpirationRequired())
+	}
+}
+
+// WithRequiredNotBefore requires the token to include an `nbf` claim.
+func WithRequiredNotBefore() Option {
+	return func(provider *Provider) {
+		if provider == nil {
+			return
+		}
+		provider.parserOptions.Add(jwt.WithNotBeforeRequired())
 	}
 }
 
@@ -235,6 +278,9 @@ func (provider *Provider) Authenticate(
 	}
 	if token == nil || !token.Valid {
 		return authx.AuthenticationResult{}, unauthenticatedError(ErrInvalidToken, "validate JWT token")
+	}
+	if provider.requireIAT && claims.IssuedAt == nil {
+		return authx.AuthenticationResult{}, unauthenticatedError(ErrInvalidToken, "validate JWT issued-at claim")
 	}
 
 	result, err := provider.claimsMapper(ctx, claims)

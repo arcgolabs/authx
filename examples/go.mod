@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	github.com/arcgolabs/collectionx/list v0.7.0
 	github.com/arcgolabs/collectionx/mapping v0.7.0
-	github.com/arcgolabs/logx v0.1.1
+	github.com/arcgolabs/logx v0.1.2
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/gofiber/fiber/v2 v2.52.12
