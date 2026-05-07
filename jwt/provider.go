@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/arcgolabs/authx"
 	collectionlist "github.com/arcgolabs/collectionx/list"
@@ -151,6 +152,44 @@ func WithValidMethods(methods ...string) Option {
 		if provider != nil {
 			provider.validMethods = collectionlist.NewList(methods...)
 		}
+	}
+}
+
+// WithIssuer constrains the `iss` claim to the provided issuer.
+func WithIssuer(issuer string) Option {
+	return func(provider *Provider) {
+		if provider != nil && issuer != "" {
+			provider.parserOptions.Add(jwt.WithIssuer(issuer))
+		}
+	}
+}
+
+// WithAudience constrains the `aud` claim to include at least one expected audience.
+func WithAudience(audiences ...string) Option {
+	return func(provider *Provider) {
+		if provider == nil || len(audiences) == 0 {
+			return
+		}
+		provider.parserOptions.Add(jwt.WithAudience(audiences...))
+	}
+}
+
+// WithRequiredSubject constrains the `sub` claim to a specific expected value.
+func WithRequiredSubject(subject string) Option {
+	return func(provider *Provider) {
+		if provider != nil && subject != "" {
+			provider.parserOptions.Add(jwt.WithSubject(subject))
+		}
+	}
+}
+
+// WithClockSkew allows time-based claim validation tolerances.
+func WithClockSkew(skew time.Duration) Option {
+	return func(provider *Provider) {
+		if provider == nil {
+			return
+		}
+		provider.parserOptions.Add(jwt.WithLeeway(skew))
 	}
 }
 

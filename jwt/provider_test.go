@@ -88,6 +88,88 @@ func TestProviderRejectsInvalidSigningMethod(t *testing.T) {
 	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
 }
 
+func TestProviderValidatesIssuer(t *testing.T) {
+	secret := []byte("secret")
+	token := signToken(t, secret, jwtlib.SigningMethodHS256, authjwt.Claims{
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			Subject:   "u1",
+			Issuer:    "token-issuer",
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(time.Hour)),
+		},
+	})
+	provider := authjwt.NewProvider(
+		authjwt.WithHMACSecret(secret),
+		authjwt.WithIssuer("service-a"),
+	)
+
+	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
+	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+}
+
+func TestProviderValidatesAudience(t *testing.T) {
+	secret := []byte("secret")
+	token := signToken(t, secret, jwtlib.SigningMethodHS256, authjwt.Claims{
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			Subject:   "u1",
+			Audience:  []string{"api"},
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(time.Hour)),
+		},
+	})
+	provider := authjwt.NewProvider(
+		authjwt.WithHMACSecret(secret),
+		authjwt.WithAudience("admin"),
+	)
+
+	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
+	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+}
+
+func TestProviderEnforcesRequiredSubject(t *testing.T) {
+	secret := []byte("secret")
+	token := signToken(t, secret, jwtlib.SigningMethodHS256, authjwt.Claims{
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			Subject:   "actual-subject",
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(time.Hour)),
+		},
+	})
+	provider := authjwt.NewProvider(
+		authjwt.WithHMACSecret(secret),
+		authjwt.WithRequiredSubject("expected-subject"),
+	)
+
+	_, err := provider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
+	assert.ErrorIs(t, err, authjwt.ErrInvalidToken)
+}
+
+func TestProviderSupportsClockSkewForNotBefore(t *testing.T) {
+	secret := []byte("secret")
+	token := signToken(t, secret, jwtlib.SigningMethodHS256, authjwt.Claims{
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			Subject:   "u1",
+			NotBefore: jwtlib.NewNumericDate(time.Now().Add(45 * time.Second)),
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+	})
+	noSkewProvider := authjwt.NewProvider(authjwt.WithHMACSecret(secret))
+	_, noSkewErr := noSkewProvider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
+	require.Error(t, noSkewErr)
+	assert.ErrorIs(t, noSkewErr, authx.ErrUnauthenticated)
+	assert.ErrorIs(t, noSkewErr, authjwt.ErrInvalidToken)
+
+	withSkewProvider := authjwt.NewProvider(
+		authjwt.WithHMACSecret(secret),
+		authjwt.WithClockSkew(60*time.Second),
+	)
+	_, withSkewErr := withSkewProvider.Authenticate(context.Background(), authjwt.NewTokenCredential(token))
+	require.NoError(t, withSkewErr)
+}
+
 func TestProviderAuthenticatesTokenWithKID(t *testing.T) {
 	secrets := map[string][]byte{
 		"old": []byte("old-secret"),
